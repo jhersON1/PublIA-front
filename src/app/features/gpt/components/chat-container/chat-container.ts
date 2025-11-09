@@ -15,20 +15,10 @@ export class ChatContainer {
   @Input() showAIResponse: boolean = false;
 
   @Output() copyToClipboard = new EventEmitter<string>();
-  @Output() likeResponse = new EventEmitter<void>();
-  @Output() dislikeResponse = new EventEmitter<void>();
   @Output() regenerateResponse = new EventEmitter<void>();
 
   onCopyToClipboard(content: string): void {
     this.copyToClipboard.emit(content);
-  }
-
-  onLike(): void {
-    this.likeResponse.emit();
-  }
-
-  onDislike(): void {
-    this.dislikeResponse.emit();
   }
 
   onRegenerate(): void {

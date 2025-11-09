@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy, computed, output, input } from '@angular/core';
+import { Component, ChangeDetectionStrategy, computed, output, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 export interface SocialPost {
