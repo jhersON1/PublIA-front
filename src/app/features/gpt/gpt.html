@@ -1,0 +1,21 @@
+<div class="relative flex h-screen w-full flex-col bg-background-light dark:bg-background-dark">
+  <div class="flex h-full grow">
+    <app-sidebar></app-sidebar>
+    <main class="flex flex-1 flex-col h-full">
+      <app-chat-container
+        [messages]="messages"
+        [socialPosts]="socialPosts"
+        [showAIResponse]="showAIResponse"
+        (copyToClipboard)="handleCopyToClipboard($event)"
+        (likeResponse)="handleLikeResponse()"
+        (dislikeResponse)="handleDislikeResponse()"
+        (regenerateResponse)="handleRegenerateResponse()">
+      </app-chat-container>
+      <app-chat-input
+        (sendMessage)="handleSendMessage($event)"
+        (attachFile)="handleAttachFile()"
+        (voiceInput)="handleVoiceInput()">
+      </app-chat-input>
+    </main>
+  </div>
+</div>
