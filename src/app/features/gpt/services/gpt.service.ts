@@ -13,11 +13,31 @@ export interface ChatResponse {
   responseId: string;
 }
 
+export interface GeneratePostsRequest {
+  prompt: string;
+}
+
+export interface NetworkPost {
+  platform?: string;
+  text: string;
+  hashtags?: string[];
+  character_count?: number;
+  suggested_image_prompt?: string;
+  tone?: string;
+  [key: string]: unknown;
+}
+
+export interface GeneratePostsResponse {
+  networks: Record<string, NetworkPost>;
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class GptService {
-  private readonly API_URL = 'http://localhost:3000/gpt/chat';
+  private readonly BASE_URL = 'http://localhost:3000/gpt';
+  private readonly CHAT_URL = `${this.BASE_URL}/chat`;
+  private readonly GENERATE_POSTS_URL = `${this.BASE_URL}/generate-posts`;
 
   private http: HttpClient = inject(HttpClient);
 
@@ -27,6 +47,11 @@ export class GptService {
       previousResponseId
     };
 
-    return this.http.post<ChatResponse>(this.API_URL, body);
+    return this.http.post<ChatResponse>(this.CHAT_URL, body);
+  }
+
+  generatePosts(prompt: string): Observable<GeneratePostsResponse> {
+    const body: GeneratePostsRequest = { prompt };
+    return this.http.post<GeneratePostsResponse>(this.GENERATE_POSTS_URL, body);
   }
 }

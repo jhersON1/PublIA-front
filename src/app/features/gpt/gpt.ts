@@ -5,7 +5,7 @@ import { ChatContainer } from './components/chat-container/chat-container';
 import { ChatInput } from './components/chat-input/chat-input';
 import type { Message } from './interfaces/message.interface';
 import type { SocialPost } from './components/social-post-card/social-post-card';
-import { GptService } from './services/gpt.service';
+import { GptService, type NetworkPost } from './services/gpt.service';
 
 @Component({
   selector: 'app-gpt',
@@ -30,7 +30,7 @@ export class Gpt {
       time: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
       avatar: sender === 'user' 
         ? 'https://lh3.googleusercontent.com/aida-public/AB6AXuBG0-rnfDL9KvPqLiOm5wriU1wDs1rmvwlPjtvf4h9Dx_3srAOllLv3fxvMDEL1DcffIzxpydAJUqsodMGARd9c0Ppjv0XOnmYRwXE4OoGB2yzmU_UZeaDkOyW_GGNtcFrZqjhpfGRS8xV_RoEThdZbxcQweVdVTpvlHJrYzo9PySnnMF8yhPdjY7tba9ve71YO9R69AEoY7WhzoGd1gcAh4JFHa330oSxlYFlloyPnrJD3AHeW5UtB_fvjc3F6ZzNJqfdpk99IDzKu'
-        : '',
+        : 'https://lh3.googleusercontent.com/aida-public/AB6AXuAdhvxftuCM4RaZTiXoLj1pqh7ALtTFyquVCfHf9iRbgjZ3E_GptnEWP_ZC8FfRfYf8ZG5Y57biMT6CvRqWTArTMmLUHKnbeYFjnKITdxEqFuSQw_SO0cMy48nbRHdhXLVGVi-cG3VSVBnJFtX36eBysrgnCsru_-PPEfKg7rTFMPb7-1bqCIWMqXOUK0L0HLNno1fwLfkPWTuSxbQ8SUtJOjkXQRkeNvFJTsgsvVkLbmNNpmpFp-4T40xcaLu9_FUXagcYR_mftybL',
       responseId
     };
     
@@ -71,7 +71,7 @@ export class Gpt {
     // Llamar al servicio con el último responseId (vacío si es nuevo chat)
     this.gptService.sendMessage(message, this.lastResponseId).subscribe({
       next: (response) => {
-        this.isLoading.set(false);
+        console.log('Response from GPT:', response);
         
         this.addMessage('ai', response.message, response.responseId);
         this.showAIResponse.set(true);
@@ -81,12 +81,11 @@ export class Gpt {
         
         // IMPORTANTE: Solo generar publicaciones si context NO está vacío
         if (response.context && response.context.trim() !== '') {
-          console.log('Context recibido:', response.context);
-          console.log('Aquí se generarán las publicaciones sociales');
-          // TODO: Implementar generación de publicaciones cuando sepamos la estructura del context
+          this.generateSocialPostsFromContext(response.context);
         } else {
           // Limpiar las publicaciones si no hay context
           this.socialPosts.set([]);
+          this.isLoading.set(false);
         }
       },
       error: (error) => {
@@ -115,5 +114,76 @@ export class Gpt {
     console.log('Voice input clicked');
     // Aquí puedes agregar lógica para capturar input de voz
   }
-}
 
+  private generateSocialPostsFromContext(context: string): void {
+    const prompt = context.trim();
+    if (!prompt) {
+      this.socialPosts.set([]);
+      this.isLoading.set(false);
+      return;
+    }
+
+    this.gptService.generatePosts(prompt).subscribe({
+      next: (response) => {
+        const networks = response?.networks ?? {};
+        const posts: SocialPost[] = Object.entries(networks)
+          .map(([key, network]) => this.mapNetworkToSocialPost(key, network))
+          .filter((post): post is SocialPost => Boolean(post));
+
+        this.socialPosts.set(posts);
+        this.isLoading.set(false);
+      },
+      error: (error) => {
+        console.error('Error al generar publicaciones:', error);
+        this.socialPosts.set([]);
+        this.isLoading.set(false);
+      }
+    });
+  }
+
+  private mapNetworkToSocialPost(key: string, data?: NetworkPost): SocialPost | null {
+    if (!data) {
+      return null;
+    }
+
+    const platform = data.platform?.trim() || this.formatPlatformName(key);
+    const hashtags = this.formatHashtags(data.hashtags);
+    const content = this.composePostContent(data.text, hashtags);
+
+    return {
+      platform,
+      content,
+      icon: platform,
+      color: ''
+    };
+  }
+
+  private composePostContent(text: string | undefined, hashtags: string[]): string {
+    const base = (text ?? '').trim();
+    if (!hashtags.length) {
+      return base;
+    }
+
+    const separator = base.length ? '\n\n' : '';
+    return `${base}${separator}${hashtags.join(' ')}`.trim();
+  }
+
+  private formatHashtags(hashtags?: string[]): string[] {
+    if (!Array.isArray(hashtags)) {
+      return [];
+    }
+
+    return hashtags
+      .map(tag => tag?.trim())
+      .filter((tag): tag is string => Boolean(tag))
+      .map(tag => tag.startsWith('#') ? tag : `#${tag}`);
+  }
+
+  private formatPlatformName(key: string): string {
+    if (!key) {
+      return 'Red Social';
+    }
+
+    return key.slice(0, 1).toUpperCase() + key.slice(1);
+  }
+}
