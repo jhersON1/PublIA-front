@@ -5,6 +5,7 @@ import { ChatContainer } from './components/chat-container/chat-container';
 import { ChatInput } from './components/chat-input/chat-input';
 import type { Message } from './components/chat-message/chat-message';
 import type { SocialPost } from './components/social-post-card/social-post-card';
+import { GptService } from './services/gpt.service';
 
 @Component({
   selector: 'app-gpt',
@@ -13,49 +14,15 @@ import type { SocialPost } from './components/social-post-card/social-post-card'
   styleUrl: './gpt.css',
 })
 export class Gpt {
-  messages: Message[] = [
-    {
-      sender: 'user',
-      content: 'el jueves 3 de mayo empieza las inscripciones',
-      time: '10:30 AM',
-      avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBG0-rnfDL9KvPqLiOm5wriU1wDs1rmvwlPjtvf4h9Dx_3srAOllLv3fxvMDEL1DcffIzxpydAJUqsodMGARd9c0Ppjv0XOnmYRwXE4OoGB2yzmU_UZeaDkOyW_GGNtcFrZqjhpfGRS8xV_RoEThdZbxcQweVdVTpvlHJrYzo9PySnnMF8yhPdjY7tba9ve71YO9R69AEoY7WhzoGd1gcAh4JFHa330oSxlYFlloyPnrJD3AHeW5UtB_fvjc3F6ZzNJqfdpk99IDzKu'
-    }
-  ];
+  messages: Message[] = [];
+  socialPosts: SocialPost[] = [];
+  showAIResponse: boolean = false;
+  isLoading: boolean = false;
+  
+  // Variable crítica: guarda el último responseId para mantener el hilo
+  private lastResponseId: string = '';
 
-  socialPosts: SocialPost[] = [
-    {
-      platform: 'Facebook',
-      content: '¡Atención! 📣 Las inscripciones abren este jueves 3 de mayo. ¡No te quedes fuera y asegura tu lugar! Marca tu calendario y prepárate para dar el siguiente paso. #InscripcionesAbiertas #Oportunidad',
-      icon: 'facebook',
-      color: '#1877F2'
-    },
-    {
-      platform: 'Instagram',
-      content: '¡La espera terminó! 🚀 Este jueves 3 de mayo inician las inscripciones. ¿Estás listo para un nuevo comienzo?\n\n#Inscripciones2024 #NuevoReto #Imperdible #SaveTheDate',
-      icon: 'instagram',
-      color: 'gradient'
-    },
-    {
-      platform: 'TikTok',
-      content: 'POV: Te enteras que las inscripciones abren el 3 de mayo. ¡Corre! 🏃‍♀️💨 #FYP #Inscripciones #NoTeLoPierdas #Viral',
-      icon: 'tiktok',
-      color: '#000000'
-    },
-    {
-      platform: 'LinkedIn',
-      content: 'Nos complace anunciar que el período de inscripciones para [Nombre del Programa/Curso] dará inicio el próximo jueves 3 de mayo. Esta es una excelente oportunidad para impulsar su desarrollo profesional. Para más información, visite nuestro sitio web.\n\n#DesarrolloProfesional #Networking #Oportunidades #Carrera',
-      icon: 'linkedin',
-      color: '#0A66C2'
-    },
-    {
-      platform: 'WhatsApp',
-      content: '¡Hola! 👋 Te recordamos que las inscripciones comienzan este jueves 3 de mayo. ¡No dejes pasar la oportunidad! Agenda la fecha. 🗓️',
-      icon: 'whatsapp',
-      color: '#25D366'
-    }
-  ];
-
-  showAIResponse: boolean = true;
+  constructor(private gptService: GptService) {}
 
   // Handlers for chat container events
   handleCopyToClipboard(content: string): void {
@@ -65,35 +32,91 @@ export class Gpt {
     });
   }
 
-  handleLikeResponse(): void {
-    console.log('Response liked');
-    // Aquí puedes agregar lógica para enviar feedback al backend
-  }
-
-  handleDislikeResponse(): void {
-    console.log('Response disliked');
-    // Aquí puedes agregar lógica para enviar feedback al backend
-  }
-
   handleRegenerateResponse(): void {
     console.log('Regenerating response');
-    // Aquí puedes agregar lógica para regenerar la respuesta
+    // Regenerar la última respuesta usando el mismo prompt
+    if (this.messages.length >= 2) {
+      const lastUserMessage = [...this.messages].reverse().find(m => m.sender === 'user');
+      if (lastUserMessage) {
+        // Remover la última respuesta de la IA
+        this.messages = this.messages.filter((_, index) => 
+          index < this.messages.length - 1
+        );
+        // Reenviar el mensaje
+        this.handleSendMessage(lastUserMessage.content);
+      }
+    }
   }
 
   // Handlers for chat input events
   handleSendMessage(message: string): void {
-    console.log('Sending message:', message);
+    if (!message.trim()) return;
     
-    const newMessage: Message = {
+    // Agregar mensaje del usuario
+    const userMessage: Message = {
       sender: 'user',
       content: message,
-      time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+      time: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
       avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBG0-rnfDL9KvPqLiOm5wriU1wDs1rmvwlPjtvf4h9Dx_3srAOllLv3fxvMDEL1DcffIzxpydAJUqsodMGARd9c0Ppjv0XOnmYRwXE4OoGB2yzmU_UZeaDkOyW_GGNtcFrZqjhpfGRS8xV_RoEThdZbxcQweVdVTpvlHJrYzo9PySnnMF8yhPdjY7tba9ve71YO9R69AEoY7WhzoGd1gcAh4JFHa330oSxlYFlloyPnrJD3AHeW5UtB_fvjc3F6ZzNJqfdpk99IDzKu'
     };
     
-    this.messages.push(newMessage);
+    this.messages.push(userMessage);
+    this.isLoading = true;
     
-    // Aquí puedes agregar la lógica para enviar el mensaje al backend/API
+    // Llamar al servicio con el último responseId (vacío si es nuevo chat)
+    this.gptService.sendMessage(message, this.lastResponseId).subscribe({
+      next: (response) => {
+        console.log('Respuesta de la IA recibida:', response);
+        this.isLoading = false;
+        
+        // Agregar respuesta de la IA
+        const aiMessage: Message = {
+          sender: 'ai',
+          content: response.message,
+          time: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+          avatar: '', // Puedes agregar un avatar para la IA
+          responseId: response.responseId
+        };
+        
+        this.messages.push(aiMessage);
+        this.showAIResponse = true;
+        
+        // Actualizar el último responseId para el siguiente mensaje
+        this.lastResponseId = response.responseId;
+        
+        // IMPORTANTE: Solo generar publicaciones si context NO está vacío
+        if (response.context && response.context.trim() !== '') {
+          console.log('Context recibido:', response.context);
+          console.log('Aquí se generarán las publicaciones sociales');
+          // TODO: Implementar generación de publicaciones cuando sepamos la estructura del context
+        } else {
+          // Limpiar las publicaciones si no hay context
+          this.socialPosts = [];
+        }
+      },
+      error: (error) => {
+        this.isLoading = false;
+        console.error('Error al enviar mensaje:', error);
+        
+        // Mostrar mensaje de error al usuario
+        const errorMessage: Message = {
+          sender: 'ai',
+          content: 'Lo siento, hubo un error al procesar tu mensaje. Por favor, intenta nuevamente.',
+          time: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+          avatar: ''
+        };
+        
+        this.messages.push(errorMessage);
+      }
+    });
+  }
+
+  // Método para crear un nuevo chat (resetear el hilo)
+  newChat(): void {
+    this.messages = [];
+    this.socialPosts = [];
+    this.lastResponseId = ''; // Resetear el responseId
+    this.showAIResponse = false;
   }
 
   handleAttachFile(): void {

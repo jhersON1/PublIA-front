@@ -1,42 +1,67 @@
 <div class="flex-1 overflow-y-auto p-4 md:p-6">
   <div class="mx-auto max-w-4xl space-y-8">
     <!-- User Messages -->
-    <app-chat-message 
-      *ngFor="let message of messages" 
-      [message]="message">
-    </app-chat-message>
+    @for (message of messages; track message) {
+      <app-chat-message [message]="message"></app-chat-message>
+    }
 
-    <!-- AI Response with Social Posts -->
-    <div *ngIf="showAIResponse" class="flex gap-3 p-4">
-      <div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 shrink-0" 
-           style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAdhvxftuCM4RaZTiXoLj1pqh7ALtTFyquVCfHf9iRbgjZ3E_GptnEWP_ZC8FfRfYf8ZG5Y57biMT6CvRqWTArTMmLUHKnbeYFjnKITdxEqFuSQw_SO0cMy48nbRHdhXLVGVi-cG3VSVBnJFtX36eBysrgnCsru_-PPEfKg7rTFMPb7-1bqCIWMqXOUK0L0HLNno1fwLfkPWTuSxbQ8SUtJOjkXQRkeNvFJTsgsvVkLbmNNpmpFp-4T40xcaLu9_FUXagcYR_mftybL");'>
-      </div>
-      <div class="flex flex-1 flex-col items-stretch gap-4">
-        <div class="flex flex-col gap-1">
-          <div class="flex flex-wrap items-center gap-3">
-            <p class="text-gray-900 dark:text-white text-base font-bold leading-tight">AI Assistant</p>
-            <p class="text-gray-500 dark:text-[#9dabb8] text-sm font-normal leading-normal">10:31 AM</p>
+    <!-- Loading Indicator -->
+    @if (isLoading) {
+      <div class="flex gap-3 p-4">
+        <div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 shrink-0" 
+             style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAdhvxftuCM4RaZTiXoLj1pqh7ALtTFyquVCfHf9iRbgjZ3E_GptnEWP_ZC8FfRfYf8ZG5Y57biMT6CvRqWTArTMmLUHKnbeYFjnKITdxEqFuSQw_SO0cMy48nbRHdhXLVGVi-cG3VSVBnJFtX36eBysrgnCsru_-PPEfKg7rTFMPb7-1bqCIWMqXOUK0L0HLNno1fwLfkPWTuSxbQ8SUtJOjkXQRkeNvFJTsgsvVkLbmNNpmpFp-4T40xcaLu9_FUXagcYR_mftybL");'>
+        </div>
+        <div class="flex flex-1 flex-col items-stretch gap-4">
+          <div class="flex flex-col gap-1">
+            <div class="flex flex-wrap items-center gap-3">
+              <p class="text-gray-900 dark:text-white text-base font-bold leading-tight">AI Assistant</p>
+            </div>
           </div>
-        </div>
-        
-        <!-- Social Posts -->
-        <div class="space-y-4">
-          <app-social-post-card 
-            *ngFor="let post of socialPosts" 
-            [post]="post"
-            (copyContent)="onCopyToClipboard($event)">
-          </app-social-post-card>
-        </div>
-
-        <!-- Action Buttons -->
-        <div class="flex justify-between gap-2 -ml-2">
-          <div class="flex gap-1">
-            <button (click)="onRegenerate()" class="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-lg hover:bg-black/5 dark:hover:bg-white/10">
-              <span class="material-symbols-outlined text-[20px]">refresh</span>
-            </button>
+          <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+            <div class="animate-pulse">Pensando...</div>
+            <div class="flex gap-1">
+              <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0ms"></span>
+              <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 150ms"></span>
+              <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 300ms"></span>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    }
+
+    <!-- Social Posts (only shown when context is not empty) -->
+    @if (showAIResponse && socialPosts.length > 0) {
+      <div class="flex gap-3 p-4">
+        <div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 shrink-0" 
+             style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAdhvxftuCM4RaZTiXoLj1pqh7ALtTFyquVCfHf9iRbgjZ3E_GptnEWP_ZC8FfRfYf8ZG5Y57biMT6CvRqWTArTMmLUHKnbeYFjnKITdxEqFuSQw_SO0cMy48nbRHdhXLVGVi-cG3VSVBnJFtX36eBysrgnCsru_-PPEfKg7rTFMPb7-1bqCIWMqXOUK0L0HLNno1fwLfkPWTuSxbQ8SUtJOjkXQRkeNvFJTsgsvVkLbmNNpmpFp-4T40xcaLu9_FUXagcYR_mftybL");'>
+        </div>
+        <div class="flex flex-1 flex-col items-stretch gap-4">
+          <div class="flex flex-col gap-1">
+            <div class="flex flex-wrap items-center gap-3">
+              <p class="text-gray-900 dark:text-white text-base font-bold leading-tight">Publicaciones Generadas</p>
+            </div>
+          </div>
+          
+          <!-- Social Posts -->
+          <div class="space-y-4">
+            @for (post of socialPosts; track post) {
+              <app-social-post-card 
+                [post]="post"
+                (copyContent)="onCopyToClipboard($event)">
+              </app-social-post-card>
+            }
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="flex justify-between gap-2 -ml-2">
+            <div class="flex gap-1">
+              <button (click)="onRegenerate()" class="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-lg hover:bg-black/5 dark:hover:bg-white/10">
+                <span class="material-symbols-outlined text-[20px]">refresh</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
   </div>
 </div>

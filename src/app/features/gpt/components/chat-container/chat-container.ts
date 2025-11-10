@@ -1,11 +1,10 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { ChatMessage, type Message } from '../chat-message/chat-message';
 import { SocialPostCard, type SocialPost } from '../social-post-card/social-post-card';
 
 @Component({
   selector: 'app-chat-container',
-  imports: [CommonModule, ChatMessage, SocialPostCard],
+  imports: [ ChatMessage, SocialPostCard],
   templateUrl: './chat-container.html',
   styleUrl: './chat-container.css',
 })
@@ -13,6 +12,7 @@ export class ChatContainer {
   @Input({ required: true }) messages: Message[] = [];
   @Input({ required: true }) socialPosts: SocialPost[] = [];
   @Input() showAIResponse: boolean = false;
+  @Input() isLoading: boolean = false;
 
   @Output() copyToClipboard = new EventEmitter<string>();
   @Output() regenerateResponse = new EventEmitter<void>();

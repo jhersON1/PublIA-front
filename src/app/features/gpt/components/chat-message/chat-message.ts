@@ -6,6 +6,7 @@ export interface Message {
   content: string;
   time: string;
   avatar: string;
+  responseId?: string; // ID de respuesta de la IA para mantener el hilo
 }
 
 @Component({
