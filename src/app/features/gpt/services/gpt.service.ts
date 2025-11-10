@@ -1,6 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { NetworkPost } from '../interfaces/network-post.interface';
 
 export interface ChatRequest {
   prompt: string;
@@ -15,16 +16,6 @@ export interface ChatResponse {
 
 export interface GeneratePostsRequest {
   prompt: string;
-}
-
-export interface NetworkPost {
-  platform?: string;
-  text: string;
-  hashtags?: string[];
-  character_count?: number;
-  suggested_image_prompt?: string;
-  tone?: string;
-  [key: string]: unknown;
 }
 
 export interface GeneratePostsResponse {

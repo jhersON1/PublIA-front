@@ -1,21 +1,20 @@
 import { Component, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { Sidebar } from '../../shared/sidebar/sidebar';
 import { ChatContainer } from './components/chat-container/chat-container';
 import { ChatInput } from './components/chat-input/chat-input';
 import type { Message } from './interfaces/message.interface';
-import type { SocialPost } from './components/social-post-card/social-post-card';
-import { GptService, type NetworkPost } from './services/gpt.service';
+import { GptService, type ChatResponse } from './services/gpt.service';
+import type { NetworkPost } from './interfaces/network-post.interface';
 
 @Component({
   selector: 'app-gpt',
-  imports: [CommonModule, Sidebar, ChatContainer, ChatInput],
+  imports: [ Sidebar, ChatContainer, ChatInput],
   templateUrl: './gpt.html',
   styleUrl: './gpt.css',
 })
 export class Gpt {
   messages = signal<Message[]>([]);
-  socialPosts = signal<SocialPost[]>([]);
+  socialPosts = signal<NetworkPost[]>([]);
   showAIResponse = signal<boolean>(false);
   isLoading = signal<boolean>(false);
   
@@ -23,6 +22,9 @@ export class Gpt {
 
   constructor(private gptService: GptService) {}
 
+  /**
+   * Registra un mensaje nuevo en el historial manteniendo la metadata básica.
+   */
   private addMessage(sender: 'user' | 'ai', content: string, responseId?: string): void {
     const message: Message = {
       sender,
@@ -37,7 +39,9 @@ export class Gpt {
     this.messages.update(msgs => [...msgs, message]);
   }
 
-  // Handlers for chat container events
+  /**
+   * Copia al portapapeles el contenido solicitado desde el contenedor de chat.
+   */
   handleCopyToClipboard(content: string): void {
     navigator.clipboard.writeText(content).then(() => {
       console.log('Copied to clipboard:', content);
@@ -45,59 +49,46 @@ export class Gpt {
     });
   }
 
+  /**
+   * Reenvía el último mensaje del usuario para regenerar la respuesta de la IA.
+   */
   handleRegenerateResponse(): void {
-    console.log('Regenerating response');
-    // Regenerar la última respuesta usando el mismo prompt
-    if (this.messages().length >= 2) {
-      const lastUserMessage = [...this.messages()].reverse().find(m => m.sender === 'user');
-      if (lastUserMessage) {
-        // Remover la última respuesta de la IA
-        this.messages.update(msgs => msgs.filter((_, index) => 
-          index < msgs.length - 1
-        ));
-        // Reenviar el mensaje
-        this.handleSendMessage(lastUserMessage.content);
-      }
+    if (this.messages().length < 2) {
+      return;
     }
+
+    const lastUserMessage = this.getLastMessageBySender('user');
+    const lastMessage = this.getLastMessage();
+
+    if (!lastUserMessage || lastMessage?.sender !== 'ai') {
+      return;
+    }
+
+    this.removeLastMessage();
+    this.handleSendMessage(lastUserMessage.content);
   }
 
-  // Handlers for chat input events
+  /**
+   * Envía el mensaje del usuario al backend aplicando trim y controlando el loading.
+   */
   handleSendMessage(message: string): void {
-    if (!message.trim()) return;
+    const prompt = message.trim();
+    if (!prompt) {
+      return;
+    }
     
-    this.addMessage('user', message);
+    this.addMessage('user', prompt);
     this.isLoading.set(true);
     
-    // Llamar al servicio con el último responseId (vacío si es nuevo chat)
-    this.gptService.sendMessage(message, this.lastResponseId).subscribe({
-      next: (response) => {
-        console.log('Response from GPT:', response);
-        
-        this.addMessage('ai', response.message, response.responseId);
-        this.showAIResponse.set(true);
-        
-        // Actualizar el último responseId para el siguiente mensaje
-        this.lastResponseId = response.responseId;
-        
-        // IMPORTANTE: Solo generar publicaciones si context NO está vacío
-        if (response.context && response.context.trim() !== '') {
-          this.generateSocialPostsFromContext(response.context);
-        } else {
-          // Limpiar las publicaciones si no hay context
-          this.socialPosts.set([]);
-          this.isLoading.set(false);
-        }
-      },
-      error: (error) => {
-        this.isLoading.set(false);
-        console.error('Error al enviar mensaje:', error);
-        
-        this.addMessage('ai', 'Lo siento, hubo un error al procesar tu mensaje. Por favor, intenta nuevamente.');
-      }
+    this.gptService.sendMessage(prompt, this.lastResponseId).subscribe({
+      next: (response) => this.handleChatSuccess(response),
+      error: (error) => this.handleChatError(error),
     });
   }
 
-  // Método para crear un nuevo chat (resetear el hilo)
+  /**
+   * Limpia el estado del hilo para iniciar una nueva conversación.
+   */
   newChat(): void {
     this.messages.set([]);
     this.socialPosts.set([]);
@@ -105,85 +96,107 @@ export class Gpt {
     this.showAIResponse.set(false);
   }
 
+  /**
+   * Placeholder para el flujo de adjuntar archivos desde el input.
+   */
   handleAttachFile(): void {
     console.log('Attach file clicked');
     // Aquí puedes agregar lógica para abrir un file picker
   }
 
+  /**
+   * Placeholder para iniciar la captura de entrada por voz.
+   */
   handleVoiceInput(): void {
     console.log('Voice input clicked');
     // Aquí puedes agregar lógica para capturar input de voz
   }
 
+  /**
+   * Solicita al backend las publicaciones sociales usando el context retornado por /chat.
+   */
   private generateSocialPostsFromContext(context: string): void {
     const prompt = context.trim();
     if (!prompt) {
-      this.socialPosts.set([]);
-      this.isLoading.set(false);
+      this.clearSocialPosts();
       return;
     }
 
     this.gptService.generatePosts(prompt).subscribe({
       next: (response) => {
+        console.log('Response:', response);
         const networks = response?.networks ?? {};
-        const posts: SocialPost[] = Object.entries(networks)
-          .map(([key, network]) => this.mapNetworkToSocialPost(key, network))
-          .filter((post): post is SocialPost => Boolean(post));
+        const posts: NetworkPost[] = Object.values(networks);
 
         this.socialPosts.set(posts);
         this.isLoading.set(false);
       },
       error: (error) => {
         console.error('Error al generar publicaciones:', error);
-        this.socialPosts.set([]);
-        this.isLoading.set(false);
+        this.clearSocialPosts();
       }
     });
   }
 
-  private mapNetworkToSocialPost(key: string, data?: NetworkPost): SocialPost | null {
-    if (!data) {
-      return null;
+  /**
+   * Maneja la respuesta exitosa del endpoint /chat actualizando estado y context.
+   */
+  private handleChatSuccess(response: ChatResponse): void {
+    this.addMessage('ai', response.message, response.responseId);
+    this.showAIResponse.set(true);
+    this.lastResponseId = response.responseId;
+
+    if (this.hasContext(response.context)) {
+      this.generateSocialPostsFromContext(response.context);
+      return;
     }
 
-    const platform = data.platform?.trim() || this.formatPlatformName(key);
-    const hashtags = this.formatHashtags(data.hashtags);
-    const content = this.composePostContent(data.text, hashtags);
-
-    return {
-      platform,
-      content,
-      icon: platform,
-      color: ''
-    };
+    this.clearSocialPosts();
   }
 
-  private composePostContent(text: string | undefined, hashtags: string[]): string {
-    const base = (text ?? '').trim();
-    if (!hashtags.length) {
-      return base;
-    }
-
-    const separator = base.length ? '\n\n' : '';
-    return `${base}${separator}${hashtags.join(' ')}`.trim();
+  /**
+   * Presenta un mensaje de error en el chat cuando /chat falla.
+   */
+  private handleChatError(error: unknown): void {
+    console.error('Error al enviar mensaje:', error);
+    this.addMessage('ai', 'Lo siento, hubo un error al procesar tu mensaje. Por favor, intenta nuevamente.');
+    this.isLoading.set(false);
   }
 
-  private formatHashtags(hashtags?: string[]): string[] {
-    if (!Array.isArray(hashtags)) {
-      return [];
-    }
-
-    return hashtags
-      .map(tag => tag?.trim())
-      .filter((tag): tag is string => Boolean(tag))
-      .map(tag => tag.startsWith('#') ? tag : `#${tag}`);
+  /**
+   * Verifica si el context recibido contiene información aprovechable.
+   */
+  private hasContext(context?: string | null): boolean {
+    return Boolean(context?.trim());
   }
 
-  private formatPlatformName(key: string): string {
-    if (!key) {
-      return 'Red Social';
-    }
+  /**
+   * Limpia las publicaciones sociales y apaga el estado de carga.
+   */
+  private clearSocialPosts(): void {
+    this.socialPosts.set([]);
+    this.isLoading.set(false);
+  }
 
-    return key.slice(0, 1).toUpperCase() + key.slice(1);
+  /**
+   * Obtiene el último mensaje (sin mutar la señal) para flujos como Regenerate.
+   */
+  private getLastMessage(): Message | undefined {
+    const list = this.messages();
+    return list[list.length - 1];
+  }
+
+  /**
+   * Busca el último mensaje emitido por un emisor específico.
+   */
+  private getLastMessageBySender(sender: 'user' | 'ai'): Message | undefined {
+    return [...this.messages()].reverse().find(message => message.sender === sender);
+  }
+
+  /**
+   * Elimina el mensaje más reciente del historial.
+   */
+  private removeLastMessage(): void {
+    this.messages.update(msgs => msgs.slice(0, -1));
   }
 }

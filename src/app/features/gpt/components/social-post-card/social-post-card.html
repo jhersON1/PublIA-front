@@ -3,11 +3,11 @@
     <div class="flex items-center gap-2">
       <img 
         [src]="iconUrl()" 
-        [alt]="post().platform" 
+        [alt]="platformLabel()" 
         (error)="onIconError($event)"
         class="w-5 h-5">
       
-      <h3 class="font-bold text-gray-900 dark:text-white">{{ post().platform }}</h3>
+      <h3 class="font-bold text-gray-900 dark:text-white">{{ platformLabel() }}</h3>
     </div>
     <button (click)="onCopy()" class="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-lg hover:bg-black/5 dark:hover:bg-white/10">
       <span class="material-symbols-outlined text-[20px]">content_copy</span>

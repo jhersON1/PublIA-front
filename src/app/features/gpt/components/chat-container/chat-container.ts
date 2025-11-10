@@ -1,7 +1,8 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { ChatMessage} from '../chat-message/chat-message';
-import { SocialPostCard, type SocialPost } from '../social-post-card/social-post-card';
+import { SocialPostCard } from '../social-post-card/social-post-card';
 import { Message } from '../../interfaces/message.interface';
+import type { NetworkPost } from '../../interfaces/network-post.interface';
 
 @Component({
   selector: 'app-chat-container',
@@ -12,7 +13,7 @@ import { Message } from '../../interfaces/message.interface';
 })
 export class ChatContainer {
   messages = input.required<Message[]>();
-  socialPosts = input.required<SocialPost[]>();
+  socialPosts = input.required<NetworkPost[]>();
   showAIResponse = input<boolean>(false);
   isLoading = input<boolean>(false);
 

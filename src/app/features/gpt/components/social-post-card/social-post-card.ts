@@ -1,12 +1,5 @@
 import { Component, ChangeDetectionStrategy, computed, output, input } from '@angular/core';
-import { CommonModule } from '@angular/common';
-
-export interface SocialPost {
-  platform: string;
-  content: string;
-  icon: string;
-  color: string;
-}
+import type { NetworkPost } from '../../interfaces/network-post.interface';
 
 @Component({
   selector: 'app-social-post-card',
@@ -15,7 +8,7 @@ export interface SocialPost {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SocialPostCard {
-  post = input.required<SocialPost>();
+  post = input.required<NetworkPost>();
   copyContent = output<string>();
 
   private readonly ICON_BASE_PATH = 'assets/network-icons/';
@@ -29,21 +22,23 @@ export class SocialPostCard {
       .replace(/[^a-z0-9\-]/g, '');
   }
 
+  platformLabel = computed(() => this.post().platform ?? 'Red social');
+
   iconUrl = computed(() => {
-    const platform = this.post().platform ?? '';
-    const file = this.normalize(platform);
+    const file = this.normalize(this.platformLabel());
     return `${this.ICON_BASE_PATH}${file}.svg`;
   });
 
-  formattedContent = computed(() =>
-    (this.post().content ?? '').replace(/\n/g, '<br>')
-  );
+  formattedContent = computed(() => {
+    const text = (this.post().text ?? '').trim();
+    return text.replace(/\n/g, '<br>');
+  });
 
   onIconError(event: Event) {
     (event.target as HTMLImageElement).src = this.DEFAULT_ICON;
   }
 
   onCopy() {
-    this.copyContent.emit(this.post().content);
+    this.copyContent.emit((this.post().text ?? '').trim());
   }
 }
