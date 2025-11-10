@@ -1,9 +1,9 @@
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Sidebar } from '../../shared/sidebar/sidebar';
 import { ChatContainer } from './components/chat-container/chat-container';
 import { ChatInput } from './components/chat-input/chat-input';
-import type { Message } from './components/chat-message/chat-message';
+import type { Message } from './components/interfaces/message.interface';
 import type { SocialPost } from './components/social-post-card/social-post-card';
 import { GptService } from './services/gpt.service';
 
@@ -14,15 +14,28 @@ import { GptService } from './services/gpt.service';
   styleUrl: './gpt.css',
 })
 export class Gpt {
-  messages: Message[] = [];
-  socialPosts: SocialPost[] = [];
-  showAIResponse: boolean = false;
-  isLoading: boolean = false;
+  messages = signal<Message[]>([]);
+  socialPosts = signal<SocialPost[]>([]);
+  showAIResponse = signal<boolean>(false);
+  isLoading = signal<boolean>(false);
   
-  // Variable crítica: guarda el último responseId para mantener el hilo
   private lastResponseId: string = '';
 
   constructor(private gptService: GptService) {}
+
+  private addMessage(sender: 'user' | 'ai', content: string, responseId?: string): void {
+    const message: Message = {
+      sender,
+      content,
+      time: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+      avatar: sender === 'user' 
+        ? 'https://lh3.googleusercontent.com/aida-public/AB6AXuBG0-rnfDL9KvPqLiOm5wriU1wDs1rmvwlPjtvf4h9Dx_3srAOllLv3fxvMDEL1DcffIzxpydAJUqsodMGARd9c0Ppjv0XOnmYRwXE4OoGB2yzmU_UZeaDkOyW_GGNtcFrZqjhpfGRS8xV_RoEThdZbxcQweVdVTpvlHJrYzo9PySnnMF8yhPdjY7tba9ve71YO9R69AEoY7WhzoGd1gcAh4JFHa330oSxlYFlloyPnrJD3AHeW5UtB_fvjc3F6ZzNJqfdpk99IDzKu'
+        : '',
+      responseId
+    };
+    
+    this.messages.update(msgs => [...msgs, message]);
+  }
 
   // Handlers for chat container events
   handleCopyToClipboard(content: string): void {
@@ -35,13 +48,13 @@ export class Gpt {
   handleRegenerateResponse(): void {
     console.log('Regenerating response');
     // Regenerar la última respuesta usando el mismo prompt
-    if (this.messages.length >= 2) {
-      const lastUserMessage = [...this.messages].reverse().find(m => m.sender === 'user');
+    if (this.messages().length >= 2) {
+      const lastUserMessage = [...this.messages()].reverse().find(m => m.sender === 'user');
       if (lastUserMessage) {
         // Remover la última respuesta de la IA
-        this.messages = this.messages.filter((_, index) => 
-          index < this.messages.length - 1
-        );
+        this.messages.update(msgs => msgs.filter((_, index) => 
+          index < msgs.length - 1
+        ));
         // Reenviar el mensaje
         this.handleSendMessage(lastUserMessage.content);
       }
@@ -52,34 +65,16 @@ export class Gpt {
   handleSendMessage(message: string): void {
     if (!message.trim()) return;
     
-    // Agregar mensaje del usuario
-    const userMessage: Message = {
-      sender: 'user',
-      content: message,
-      time: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
-      avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBG0-rnfDL9KvPqLiOm5wriU1wDs1rmvwlPjtvf4h9Dx_3srAOllLv3fxvMDEL1DcffIzxpydAJUqsodMGARd9c0Ppjv0XOnmYRwXE4OoGB2yzmU_UZeaDkOyW_GGNtcFrZqjhpfGRS8xV_RoEThdZbxcQweVdVTpvlHJrYzo9PySnnMF8yhPdjY7tba9ve71YO9R69AEoY7WhzoGd1gcAh4JFHa330oSxlYFlloyPnrJD3AHeW5UtB_fvjc3F6ZzNJqfdpk99IDzKu'
-    };
-    
-    this.messages.push(userMessage);
-    this.isLoading = true;
+    this.addMessage('user', message);
+    this.isLoading.set(true);
     
     // Llamar al servicio con el último responseId (vacío si es nuevo chat)
     this.gptService.sendMessage(message, this.lastResponseId).subscribe({
       next: (response) => {
-        console.log('Respuesta de la IA recibida:', response);
-        this.isLoading = false;
+        this.isLoading.set(false);
         
-        // Agregar respuesta de la IA
-        const aiMessage: Message = {
-          sender: 'ai',
-          content: response.message,
-          time: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
-          avatar: '', // Puedes agregar un avatar para la IA
-          responseId: response.responseId
-        };
-        
-        this.messages.push(aiMessage);
-        this.showAIResponse = true;
+        this.addMessage('ai', response.message, response.responseId);
+        this.showAIResponse.set(true);
         
         // Actualizar el último responseId para el siguiente mensaje
         this.lastResponseId = response.responseId;
@@ -91,32 +86,24 @@ export class Gpt {
           // TODO: Implementar generación de publicaciones cuando sepamos la estructura del context
         } else {
           // Limpiar las publicaciones si no hay context
-          this.socialPosts = [];
+          this.socialPosts.set([]);
         }
       },
       error: (error) => {
-        this.isLoading = false;
+        this.isLoading.set(false);
         console.error('Error al enviar mensaje:', error);
         
-        // Mostrar mensaje de error al usuario
-        const errorMessage: Message = {
-          sender: 'ai',
-          content: 'Lo siento, hubo un error al procesar tu mensaje. Por favor, intenta nuevamente.',
-          time: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
-          avatar: ''
-        };
-        
-        this.messages.push(errorMessage);
+        this.addMessage('ai', 'Lo siento, hubo un error al procesar tu mensaje. Por favor, intenta nuevamente.');
       }
     });
   }
 
   // Método para crear un nuevo chat (resetear el hilo)
   newChat(): void {
-    this.messages = [];
-    this.socialPosts = [];
+    this.messages.set([]);
+    this.socialPosts.set([]);
     this.lastResponseId = ''; // Resetear el responseId
-    this.showAIResponse = false;
+    this.showAIResponse.set(false);
   }
 
   handleAttachFile(): void {

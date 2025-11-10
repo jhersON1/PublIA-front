@@ -3,10 +3,10 @@
     <app-sidebar></app-sidebar>
     <main class="flex flex-1 flex-col h-full">
       <app-chat-container
-        [messages]="messages"
-        [socialPosts]="socialPosts"
-        [showAIResponse]="showAIResponse"
-        [isLoading]="isLoading"
+        [messages]="messages()"
+        [socialPosts]="socialPosts()"
+        [showAIResponse]="showAIResponse()"
+        [isLoading]="isLoading()"
         (copyToClipboard)="handleCopyToClipboard($event)"
         (regenerateResponse)="handleRegenerateResponse()">
       </app-chat-container>

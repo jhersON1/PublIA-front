@@ -10,7 +10,6 @@ export interface SocialPost {
 
 @Component({
   selector: 'app-social-post-card',
-  imports: [CommonModule],
   templateUrl: './social-post-card.html',
   styleUrl: './social-post-card.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

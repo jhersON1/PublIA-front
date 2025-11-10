@@ -1,12 +1,12 @@
 <div class="flex-1 overflow-y-auto p-4 md:p-6">
   <div class="mx-auto max-w-4xl space-y-8">
     <!-- User Messages -->
-    @for (message of messages; track message) {
+    @for (message of messages(); track message) {
       <app-chat-message [message]="message"></app-chat-message>
     }
 
     <!-- Loading Indicator -->
-    @if (isLoading) {
+    @if (isLoading()) {
       <div class="flex gap-3 p-4">
         <div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 shrink-0" 
              style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAdhvxftuCM4RaZTiXoLj1pqh7ALtTFyquVCfHf9iRbgjZ3E_GptnEWP_ZC8FfRfYf8ZG5Y57biMT6CvRqWTArTMmLUHKnbeYFjnKITdxEqFuSQw_SO0cMy48nbRHdhXLVGVi-cG3VSVBnJFtX36eBysrgnCsru_-PPEfKg7rTFMPb7-1bqCIWMqXOUK0L0HLNno1fwLfkPWTuSxbQ8SUtJOjkXQRkeNvFJTsgsvVkLbmNNpmpFp-4T40xcaLu9_FUXagcYR_mftybL");'>
@@ -30,7 +30,7 @@
     }
 
     <!-- Social Posts (only shown when context is not empty) -->
-    @if (showAIResponse && socialPosts.length > 0) {
+    @if (showAIResponse() && socialPosts.length > 0) {
       <div class="flex gap-3 p-4">
         <div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 shrink-0" 
              style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAdhvxftuCM4RaZTiXoLj1pqh7ALtTFyquVCfHf9iRbgjZ3E_GptnEWP_ZC8FfRfYf8ZG5Y57biMT6CvRqWTArTMmLUHKnbeYFjnKITdxEqFuSQw_SO0cMy48nbRHdhXLVGVi-cG3VSVBnJFtX36eBysrgnCsru_-PPEfKg7rTFMPb7-1bqCIWMqXOUK0L0HLNno1fwLfkPWTuSxbQ8SUtJOjkXQRkeNvFJTsgsvVkLbmNNpmpFp-4T40xcaLu9_FUXagcYR_mftybL");'>
@@ -44,7 +44,7 @@
           
           <!-- Social Posts -->
           <div class="space-y-4">
-            @for (post of socialPosts; track post) {
+            @for (post of socialPosts(); track post) {
               <app-social-post-card 
                 [post]="post"
                 (copyContent)="onCopyToClipboard($event)">

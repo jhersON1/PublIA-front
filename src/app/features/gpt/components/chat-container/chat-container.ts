@@ -1,21 +1,23 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
-import { ChatMessage, type Message } from '../chat-message/chat-message';
+import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChatMessage} from '../chat-message/chat-message';
 import { SocialPostCard, type SocialPost } from '../social-post-card/social-post-card';
+import { Message } from '../interfaces/message.interface';
 
 @Component({
   selector: 'app-chat-container',
   imports: [ ChatMessage, SocialPostCard],
   templateUrl: './chat-container.html',
   styleUrl: './chat-container.css',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ChatContainer {
-  @Input({ required: true }) messages: Message[] = [];
-  @Input({ required: true }) socialPosts: SocialPost[] = [];
-  @Input() showAIResponse: boolean = false;
-  @Input() isLoading: boolean = false;
+  messages = input.required<Message[]>();
+  socialPosts = input.required<SocialPost[]>();
+  showAIResponse = input<boolean>(false);
+  isLoading = input<boolean>(false);
 
-  @Output() copyToClipboard = new EventEmitter<string>();
-  @Output() regenerateResponse = new EventEmitter<void>();
+  copyToClipboard = output<string>();
+  regenerateResponse = output<void>();
 
   onCopyToClipboard(content: string): void {
     this.copyToClipboard.emit(content);

@@ -1,4 +1,4 @@
-import { Component, Output, EventEmitter } from '@angular/core';
+import { Component, output, model } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -9,11 +9,11 @@ import { FormsModule } from '@angular/forms';
   styleUrl: './chat-input.css',
 })
 export class ChatInput {
-  messageInput: string = '';
+  messageInput = model<string>('');
 
-  @Output() sendMessage = new EventEmitter<string>();
-  @Output() attachFile = new EventEmitter<void>();
-  @Output() voiceInput = new EventEmitter<void>();
+  sendMessage = output<string>();
+  attachFile = output<void>();
+  voiceInput = output<void>();
 
   handleEnter(event: KeyboardEvent): void {
     event.preventDefault();
@@ -21,9 +21,9 @@ export class ChatInput {
   }
 
   onSend(): void {
-    if (this.messageInput.trim()) {
-      this.sendMessage.emit(this.messageInput);
-      this.messageInput = '';
+    if (this.messageInput().trim()) {
+      this.sendMessage.emit(this.messageInput());
+      this.messageInput.set('');
     }
   }
 
