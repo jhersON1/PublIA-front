@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { ChatMessage} from '../chat-message/chat-message';
 import { SocialPostCard, type SocialPost } from '../social-post-card/social-post-card';
-import { Message } from '../interfaces/message.interface';
+import { Message } from '../../interfaces/message.interface';
 
 @Component({
   selector: 'app-chat-container',

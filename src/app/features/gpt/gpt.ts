@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Sidebar } from '../../shared/sidebar/sidebar';
 import { ChatContainer } from './components/chat-container/chat-container';
 import { ChatInput } from './components/chat-input/chat-input';
-import type { Message } from './components/interfaces/message.interface';
+import type { Message } from './interfaces/message.interface';
 import type { SocialPost } from './components/social-post-card/social-post-card';
 import { GptService } from './services/gpt.service';
 
