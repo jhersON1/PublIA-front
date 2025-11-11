@@ -1,10 +1,11 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, effect } from '@angular/core';
 import { Sidebar } from '../../shared/sidebar/sidebar';
 import { ChatContainer } from './components/chat-container/chat-container';
 import { ChatInput } from './components/chat-input/chat-input';
 import type { Message } from './interfaces/message.interface';
 import { GptService, type ChatResponse } from './services/gpt.service';
 import type { NetworkPost } from './interfaces/network-post.interface';
+import { SidebarService } from '../../services/sidebar.service';
 
 @Component({
   selector: 'app-gpt',
@@ -13,34 +14,34 @@ import type { NetworkPost } from './interfaces/network-post.interface';
   styleUrl: './gpt.css',
 })
 export class Gpt {
+  // Public signals
   messages = signal<Message[]>([]);
   socialPosts = signal<NetworkPost[]>([]);
   showAIResponse = signal<boolean>(false);
   isLoading = signal<boolean>(false);
   
+  // Private properties
   private lastResponseId: string = '';
 
-  constructor(private gptService: GptService) {}
-
-  /**
-   * Registra un mensaje nuevo en el historial manteniendo la metadata básica.
-   */
-  private addMessage(sender: 'user' | 'ai', content: string, responseId?: string): void {
-    const message: Message = {
-      sender,
-      content,
-      time: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
-      avatar: sender === 'user' 
-        ? 'https://lh3.googleusercontent.com/aida-public/AB6AXuBG0-rnfDL9KvPqLiOm5wriU1wDs1rmvwlPjtvf4h9Dx_3srAOllLv3fxvMDEL1DcffIzxpydAJUqsodMGARd9c0Ppjv0XOnmYRwXE4OoGB2yzmU_UZeaDkOyW_GGNtcFrZqjhpfGRS8xV_RoEThdZbxcQweVdVTpvlHJrYzo9PySnnMF8yhPdjY7tba9ve71YO9R69AEoY7WhzoGd1gcAh4JFHa330oSxlYFlloyPnrJD3AHeW5UtB_fvjc3F6ZzNJqfdpk99IDzKu'
-        : 'https://lh3.googleusercontent.com/aida-public/AB6AXuAdhvxftuCM4RaZTiXoLj1pqh7ALtTFyquVCfHf9iRbgjZ3E_GptnEWP_ZC8FfRfYf8ZG5Y57biMT6CvRqWTArTMmLUHKnbeYFjnKITdxEqFuSQw_SO0cMy48nbRHdhXLVGVi-cG3VSVBnJFtX36eBysrgnCsru_-PPEfKg7rTFMPb7-1bqCIWMqXOUK0L0HLNno1fwLfkPWTuSxbQ8SUtJOjkXQRkeNvFJTsgsvVkLbmNNpmpFp-4T40xcaLu9_FUXagcYR_mftybL',
-      responseId
-    };
-    
-    this.messages.update(msgs => [...msgs, message]);
+  // Constructor
+  constructor(
+    private gptService: GptService,
+    private sidebarService: SidebarService
+  ) {
+    // Effect para reaccionar a los cambios en el trigger de nuevo chat
+    effect(() => {
+      const trigger = this.sidebarService.getNewChatTrigger()();
+      if (trigger > 0) {
+        this.newChat();
+      }
+    });
   }
 
+  // Public methods
+  
   /**
-   * Copia al portapapeles el contenido solicitado desde el contenedor de chat.
+   * Copia el contenido proporcionado al portapapeles del sistema.
+   * @param content - Texto a copiar al portapapeles
    */
   handleCopyToClipboard(content: string): void {
     navigator.clipboard.writeText(content).then(() => {
@@ -50,7 +51,8 @@ export class Gpt {
   }
 
   /**
-   * Actualiza el contenido de un post específico en el array de socialPosts.
+   * Actualiza el texto de una publicación específica identificada por su plataforma.
+   * @param update - Objeto con la plataforma y el nuevo texto del post
    */
   handleUpdatePost(update: { platform: string; text: string }): void {
     this.socialPosts.update(posts => 
@@ -63,7 +65,8 @@ export class Gpt {
   }
 
   /**
-   * Reenvía el último mensaje del usuario para regenerar la respuesta de la IA.
+   * Regenera la última respuesta de la IA reenviando el último mensaje del usuario.
+   * Valida que exista un mensaje de usuario previo y que la última respuesta sea de la IA.
    */
   handleRegenerateResponse(): void {
     if (this.messages().length < 2) {
@@ -82,7 +85,8 @@ export class Gpt {
   }
 
   /**
-   * Envía el mensaje del usuario al backend aplicando trim y controlando el loading.
+   * Envía un mensaje del usuario al servicio de GPT y maneja la respuesta.
+   * @param message - Mensaje del usuario a enviar
    */
   handleSendMessage(message: string): void {
     const prompt = message.trim();
@@ -100,17 +104,17 @@ export class Gpt {
   }
 
   /**
-   * Limpia el estado del hilo para iniciar una nueva conversación.
+   * Reinicia el chat limpiando todos los mensajes, publicaciones y el estado.
    */
   newChat(): void {
     this.messages.set([]);
     this.socialPosts.set([]);
-    this.lastResponseId = ''; // Resetear el responseId
+    this.lastResponseId = '';
     this.showAIResponse.set(false);
   }
 
   /**
-   * Placeholder para el flujo de adjuntar archivos desde el input.
+   * Maneja la acción de adjuntar archivos (placeholder para futura implementación).
    */
   handleAttachFile(): void {
     console.log('Attach file clicked');
@@ -118,15 +122,38 @@ export class Gpt {
   }
 
   /**
-   * Placeholder para iniciar la captura de entrada por voz.
+   * Maneja la entrada de voz (placeholder para futura implementación).
    */
   handleVoiceInput(): void {
     console.log('Voice input clicked');
     // Aquí puedes agregar lógica para capturar input de voz
   }
 
+  // Private methods
+  
   /**
-   * Solicita al backend las publicaciones sociales usando el context retornado por /chat.
+   * Añade un nuevo mensaje al historial de conversación.
+   * @param sender - Emisor del mensaje ('user' o 'ai')
+   * @param content - Contenido del mensaje
+   * @param responseId - ID de respuesta opcional para seguimiento del hilo de conversación
+   */
+  private addMessage(sender: 'user' | 'ai', content: string, responseId?: string): void {
+    const message: Message = {
+      sender,
+      content,
+      time: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+      avatar: sender === 'user' 
+        ? 'https://lh3.googleusercontent.com/aida-public/AB6AXuBG0-rnfDL9KvPqLiOm5wriU1wDs1rmvwlPjtvf4h9Dx_3srAOllLv3fxvMDEL1DcffIzxpydAJUqsodMGARd9c0Ppjv0XOnmYRwXE4OoGB2yzmU_UZeaDkOyW_GGNtcFrZqjhpfGRS8xV_RoEThdZbxcQweVdVTpvlHJrYzo9PySnnMF8yhPdjY7tba9ve71YO9R69AEoY7WhzoGd1gcAh4JFHa330oSxlYFlloyPnrJD3AHeW5UtB_fvjc3F6ZzNJqfdpk99IDzKu'
+        : 'https://lh3.googleusercontent.com/aida-public/AB6AXuAdhvxftuCM4RaZTiXoLj1pqh7ALtTFyquVCfHf9iRbgjZ3E_GptnEWP_ZC8FfRfYf8ZG5Y57biMT6CvRqWTArTMmLUHKnbeYFjnKITdxEqFuSQw_SO0cMy48nbRHdhXLVGVi-cG3VSVBnJFtX36eBysrgnCsru_-PPEfKg7rTFMPb7-1bqCIWMqXOUK0L0HLNno1fwLfkPWTuSxbQ8SUtJOjkXQRkeNvFJTsgsvVkLbmNNpmpFp-4T40xcaLu9_FUXagcYR_mftybL',
+      responseId
+    };
+    
+    this.messages.update(msgs => [...msgs, message]);
+  }
+
+  /**
+   * Solicita al servicio la generación de publicaciones para redes sociales basadas en el contexto.
+   * @param context - Contexto extraído de la conversación para generar publicaciones
    */
   private generateSocialPostsFromContext(context: string): void {
     this.gptService.generatePosts(context).subscribe({
@@ -147,7 +174,8 @@ export class Gpt {
   }
 
   /**
-   * Maneja la respuesta exitosa del endpoint /chat actualizando estado y context.
+   * Procesa la respuesta exitosa del chat, actualiza el estado y genera publicaciones si hay contexto.
+   * @param response - Respuesta del servicio de chat con mensaje, ID y contexto opcional
    */
   private handleChatSuccess(response: ChatResponse): void {
     this.addMessage('ai', response.message, response.responseId);
@@ -163,7 +191,8 @@ export class Gpt {
   }
 
   /**
-   * Presenta un mensaje de error en el chat cuando /chat falla.
+   * Maneja errores en la comunicación con el servicio de chat mostrando un mensaje al usuario.
+   * @param error - Error capturado durante la petición
    */
   private handleChatError(error: unknown): void {
     console.error('Error al enviar mensaje:', error);
@@ -172,14 +201,16 @@ export class Gpt {
   }
 
   /**
-   * Verifica si el context recibido contiene información aprovechable.
+   * Verifica si el contexto recibido contiene información válida.
+   * @param context - Contexto opcional a validar
+   * @returns true si el contexto existe y no está vacío
    */
   private hasContext(context?: string | null): boolean {
     return Boolean(context?.trim());
   }
 
   /**
-   * Limpia las publicaciones sociales y apaga el estado de carga.
+   * Limpia el array de publicaciones sociales y desactiva el estado de carga.
    */
   private clearSocialPosts(): void {
     this.socialPosts.set([]);
@@ -187,7 +218,8 @@ export class Gpt {
   }
 
   /**
-   * Obtiene el último mensaje (sin mutar la señal) para flujos como Regenerate.
+   * Obtiene el último mensaje del historial.
+   * @returns El último mensaje o undefined si no hay mensajes
    */
   private getLastMessage(): Message | undefined {
     const list = this.messages();
@@ -196,13 +228,15 @@ export class Gpt {
 
   /**
    * Busca el último mensaje emitido por un emisor específico.
+   * @param sender - Tipo de emisor a buscar ('user' o 'ai')
+   * @returns El último mensaje del emisor especificado o undefined
    */
   private getLastMessageBySender(sender: 'user' | 'ai'): Message | undefined {
     return [...this.messages()].reverse().find(message => message.sender === sender);
   }
 
   /**
-   * Elimina el mensaje más reciente del historial.
+   * Elimina el último mensaje del historial de conversación.
    */
   private removeLastMessage(): void {
     this.messages.update(msgs => msgs.slice(0, -1));

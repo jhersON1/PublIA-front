@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, computed, output, input, signal, effect, ViewChild, ElementRef, HostListener } from '@angular/core';
+import { Component, ChangeDetectionStrategy, computed, output, input, signal, effect, viewChild, ElementRef, HostListener } from '@angular/core';
 import type { NetworkPost } from '../../interfaces/network-post.interface';
 
 @Component({
@@ -9,25 +9,17 @@ import type { NetworkPost } from '../../interfaces/network-post.interface';
 })
 export class SocialPostCard {
   post = input.required<NetworkPost>();
+  
   copyContent = output<string>();
   updateContent = output<{ platform: string; text: string }>();
+  
   isEditing = signal(false);
   editableContent = signal('');
-  @ViewChild('editArea') private editArea?: ElementRef<HTMLTextAreaElement>;
-
-  private readonly ICON_BASE_PATH = 'assets/network-icons/';
-  private readonly DEFAULT_ICON = `${this.ICON_BASE_PATH}default.svg`;
-
-  private normalize(name: string) {
-    return name
-      .toLowerCase()
-      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/[^a-z0-9\-]/g, '');
-  }
-
+  
+  editArea = viewChild<ElementRef<HTMLTextAreaElement>>('editArea');
+  
   platformLabel = computed(() => this.post().platform ?? 'Red social');
-
+  
   iconUrl = computed(() => {
     const file = this.normalize(this.platformLabel());
     return `${this.ICON_BASE_PATH}${file}.svg`;
@@ -37,6 +29,9 @@ export class SocialPostCard {
     const text = (this.post().text ?? '').trim();
     return text.replace(/\n/g, '<br>');
   });
+
+  private readonly ICON_BASE_PATH = 'assets/network-icons/';
+  private readonly DEFAULT_ICON = `${this.ICON_BASE_PATH}default.svg`;
 
   constructor() {
     effect(() => {
@@ -78,6 +73,20 @@ export class SocialPostCard {
     }
   }
 
+  onEditInput(event: Event) {
+    const { value } = event.target as HTMLTextAreaElement;
+    this.editableContent.set(value);
+    this.syncEditorHeight();
+  }
+
+  private normalize(name: string) {
+    return name
+      .toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9\-]/g, '');
+  }
+
   private saveAndCloseEdit() {
     this.updateContent.emit({
       platform: this.post().platform,
@@ -86,15 +95,9 @@ export class SocialPostCard {
     this.isEditing.set(false);
   }
 
-  onEditInput(event: Event) {
-    const { value } = event.target as HTMLTextAreaElement;
-    this.editableContent.set(value);
-    this.syncEditorHeight();
-  }
-
   private syncEditorHeight() {
     queueMicrotask(() => {
-      const textarea = this.editArea?.nativeElement;
+      const textarea = this.editArea()?.nativeElement;
       if (!textarea) {
         return;
       }
