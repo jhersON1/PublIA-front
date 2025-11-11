@@ -27,4 +27,12 @@ export class ChatContainer {
   onRegenerate(): void {
     this.regenerateResponse.emit();
   }
+
+  trackByPlatform(index: number, post: NetworkPost): string {
+    return post.platform;
+  }
+
+  trackByMessage(index: number, message: Message): string {
+    return `${index}-${message.responseId || message.time}`;
+  }
 }

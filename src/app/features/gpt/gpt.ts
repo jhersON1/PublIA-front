@@ -116,19 +116,14 @@ export class Gpt {
    * Solicita al backend las publicaciones sociales usando el context retornado por /chat.
    */
   private generateSocialPostsFromContext(context: string): void {
-    const prompt = context.trim();
-    if (!prompt) {
-      this.clearSocialPosts();
-      return;
-    }
-
-    this.gptService.generatePosts(prompt).subscribe({
+    this.gptService.generatePosts(context).subscribe({
       next: (response) => {
         console.log('Response:', response);
-        const networks = response?.networks ?? {};
-        const posts: NetworkPost[] = Object.values(networks);
+        const posts: NetworkPost[] = Object.values(response.networks);
 
         this.socialPosts.set(posts);
+
+        console.log('Generated social posts:', this.socialPosts());
         this.isLoading.set(false);
       },
       error: (error) => {

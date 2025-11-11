@@ -1,7 +1,7 @@
 <div class="flex-1 overflow-y-auto p-4 md:p-6">
   <div class="mx-auto max-w-4xl space-y-8">
     <!-- User Messages -->
-    @for (message of messages(); track message) {
+    @for (message of messages(); track trackByMessage($index, message)) {
       <app-chat-message [message]="message"></app-chat-message>
     }
 
@@ -44,7 +44,7 @@
           
           <!-- Social Posts -->
           <div class="space-y-4">
-            @for (post of socialPosts(); track post) {
+            @for (post of socialPosts(); track trackByPlatform($index, post)) {
               <app-social-post-card 
                 [post]="post"
                 (copyContent)="onCopyToClipboard($event)">

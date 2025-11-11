@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, computed, output, input } from '@angular/core';
+import { Component, ChangeDetectionStrategy, computed, output, input, signal, effect, ViewChild, ElementRef, HostListener } from '@angular/core';
 import type { NetworkPost } from '../../interfaces/network-post.interface';
 
 @Component({
@@ -10,6 +10,9 @@ import type { NetworkPost } from '../../interfaces/network-post.interface';
 export class SocialPostCard {
   post = input.required<NetworkPost>();
   copyContent = output<string>();
+  isEditing = signal(false);
+  editableContent = signal('');
+  @ViewChild('editArea') private editArea?: ElementRef<HTMLTextAreaElement>;
 
   private readonly ICON_BASE_PATH = 'assets/network-icons/';
   private readonly DEFAULT_ICON = `${this.ICON_BASE_PATH}default.svg`;
@@ -34,11 +37,57 @@ export class SocialPostCard {
     return text.replace(/\n/g, '<br>');
   });
 
+  constructor() {
+    effect(() => {
+      if (!this.isEditing()) {
+        this.editableContent.set((this.post().text ?? '').trim());
+      }
+      if (this.isEditing()) {
+        this.syncEditorHeight();
+      }
+    });
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent) {
+    const target = event.target as HTMLElement;
+    const cardElement = (event.currentTarget as Document).querySelector('app-social-post-card');
+    
+    if (this.isEditing() && !target.closest('app-social-post-card')) {
+      this.isEditing.set(false);
+    }
+  }
+
   onIconError(event: Event) {
     (event.target as HTMLImageElement).src = this.DEFAULT_ICON;
   }
 
   onCopy() {
     this.copyContent.emit((this.post().text ?? '').trim());
+  }
+
+  toggleEditing() {
+    const nextState = !this.isEditing();
+    this.isEditing.set(nextState);
+    if (nextState) {
+      this.syncEditorHeight();
+    }
+  }
+
+  onEditInput(event: Event) {
+    const { value } = event.target as HTMLTextAreaElement;
+    this.editableContent.set(value);
+    this.syncEditorHeight();
+  }
+
+  private syncEditorHeight() {
+    queueMicrotask(() => {
+      const textarea = this.editArea?.nativeElement;
+      if (!textarea) {
+        return;
+      }
+      textarea.style.height = 'auto';
+      textarea.style.height = `${textarea.scrollHeight}px`;
+    });
   }
 }
