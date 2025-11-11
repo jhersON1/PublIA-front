@@ -19,6 +19,7 @@ export class ChatContainer {
 
   copyToClipboard = output<string>();
   regenerateResponse = output<void>();
+  updatePost = output<{ platform: string; text: string }>();
 
   onCopyToClipboard(content: string): void {
     this.copyToClipboard.emit(content);
@@ -26,6 +27,10 @@ export class ChatContainer {
 
   onRegenerate(): void {
     this.regenerateResponse.emit();
+  }
+
+  onUpdatePost(update: { platform: string; text: string }): void {
+    this.updatePost.emit(update);
   }
 
   trackByPlatform(index: number, post: NetworkPost): string {

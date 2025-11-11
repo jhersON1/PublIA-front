@@ -10,6 +10,7 @@ import type { NetworkPost } from '../../interfaces/network-post.interface';
 export class SocialPostCard {
   post = input.required<NetworkPost>();
   copyContent = output<string>();
+  updateContent = output<{ platform: string; text: string }>();
   isEditing = signal(false);
   editableContent = signal('');
   @ViewChild('editArea') private editArea?: ElementRef<HTMLTextAreaElement>;
@@ -51,10 +52,9 @@ export class SocialPostCard {
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent) {
     const target = event.target as HTMLElement;
-    const cardElement = (event.currentTarget as Document).querySelector('app-social-post-card');
     
     if (this.isEditing() && !target.closest('app-social-post-card')) {
-      this.isEditing.set(false);
+      this.saveAndCloseEdit();
     }
   }
 
@@ -68,10 +68,22 @@ export class SocialPostCard {
 
   toggleEditing() {
     const nextState = !this.isEditing();
-    this.isEditing.set(nextState);
-    if (nextState) {
-      this.syncEditorHeight();
+    if (!nextState && this.isEditing()) {
+      this.saveAndCloseEdit();
+    } else {
+      this.isEditing.set(nextState);
+      if (nextState) {
+        this.syncEditorHeight();
+      }
     }
+  }
+
+  private saveAndCloseEdit() {
+    this.updateContent.emit({
+      platform: this.post().platform,
+      text: this.editableContent()
+    });
+    this.isEditing.set(false);
   }
 
   onEditInput(event: Event) {

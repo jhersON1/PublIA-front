@@ -8,7 +8,8 @@
         [showAIResponse]="showAIResponse()"
         [isLoading]="isLoading()"
         (copyToClipboard)="handleCopyToClipboard($event)"
-        (regenerateResponse)="handleRegenerateResponse()">
+        (regenerateResponse)="handleRegenerateResponse()"
+        (updatePost)="handleUpdatePost($event)">
       </app-chat-container>
       <app-chat-input
         (sendMessage)="handleSendMessage($event)"

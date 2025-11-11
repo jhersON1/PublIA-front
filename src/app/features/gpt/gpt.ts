@@ -50,6 +50,19 @@ export class Gpt {
   }
 
   /**
+   * Actualiza el contenido de un post específico en el array de socialPosts.
+   */
+  handleUpdatePost(update: { platform: string; text: string }): void {
+    this.socialPosts.update(posts => 
+      posts.map(post => 
+        post.platform === update.platform 
+          ? { ...post, text: update.text }
+          : post
+      )
+    );
+  }
+
+  /**
    * Reenvía el último mensaje del usuario para regenerar la respuesta de la IA.
    */
   handleRegenerateResponse(): void {

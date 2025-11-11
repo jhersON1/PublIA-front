@@ -47,7 +47,8 @@
             @for (post of socialPosts(); track trackByPlatform($index, post)) {
               <app-social-post-card 
                 [post]="post"
-                (copyContent)="onCopyToClipboard($event)">
+                (copyContent)="onCopyToClipboard($event)"
+                (updateContent)="onUpdatePost($event)">
               </app-social-post-card>
             }
           </div>
