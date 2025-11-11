@@ -1,4 +1,4 @@
-import { Component, output, model } from '@angular/core';
+import { Component, output, model, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -9,6 +9,8 @@ import { FormsModule } from '@angular/forms';
   styleUrl: './chat-input.css',
 })
 export class ChatInput {
+  isDisabled = input<boolean>(false);
+
   messageInput = model<string>('');
 
   sendMessage = output<string>();
@@ -21,17 +23,21 @@ export class ChatInput {
   }
 
   onSend(): void {
-    if (this.messageInput().trim()) {
+    if (this.messageInput().trim() && !this.isDisabled()) {
       this.sendMessage.emit(this.messageInput());
       this.messageInput.set('');
     }
   }
 
   onAttachFile(): void {
-    this.attachFile.emit();
+    if (!this.isDisabled()) {
+      this.attachFile.emit();
+    }
   }
 
   onVoiceInput(): void {
-    this.voiceInput.emit();
+    if (!this.isDisabled()) {
+      this.voiceInput.emit();
+    }
   }
 }

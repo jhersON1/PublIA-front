@@ -12,6 +12,7 @@
         (updatePost)="handleUpdatePost($event)">
       </app-chat-container>
       <app-chat-input
+        [isDisabled]="isLoading()"
         (sendMessage)="handleSendMessage($event)"
         (attachFile)="handleAttachFile()"
         (voiceInput)="handleVoiceInput()">
