@@ -20,6 +20,8 @@ export class SocialPostCard {
   
   platformLabel = computed(() => this.post().platform ?? 'Red social');
   
+  isInstagram = computed(() => this.platformLabel().toLowerCase() === 'instagram');
+  
   iconUrl = computed(() => {
     const file = this.normalize(this.platformLabel());
     return `${this.ICON_BASE_PATH}${file}.svg`;
@@ -30,13 +32,21 @@ export class SocialPostCard {
     return text.replace(/\n/g, '<br>');
   });
 
+  suggestedPrompt = computed(() => {
+    return (this.post().suggested_image_prompt ?? '').trim();
+  });
+
   private readonly ICON_BASE_PATH = 'assets/network-icons/';
   private readonly DEFAULT_ICON = `${this.ICON_BASE_PATH}default.svg`;
 
   constructor() {
     effect(() => {
       if (!this.isEditing()) {
-        this.editableContent.set((this.post().text ?? '').trim());
+        // Para Instagram, editar el prompt sugerido; para otros, el texto
+        const content = this.isInstagram() 
+          ? (this.post().suggested_image_prompt ?? '').trim()
+          : (this.post().text ?? '').trim();
+        this.editableContent.set(content);
       }
       if (this.isEditing()) {
         this.syncEditorHeight();
@@ -58,7 +68,11 @@ export class SocialPostCard {
   }
 
   onCopy() {
-    this.copyContent.emit((this.post().text ?? '').trim());
+    // Para Instagram, copiar el prompt sugerido; para otros, el texto
+    const content = this.isInstagram()
+      ? (this.post().suggested_image_prompt ?? '').trim()
+      : (this.post().text ?? '').trim();
+    this.copyContent.emit(content);
   }
 
   toggleEditing() {

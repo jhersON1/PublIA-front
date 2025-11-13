@@ -26,16 +26,53 @@
     </div>
   </div>
   <div class="p-4 rounded-md transition-colors" [class.bg-gray-100]="isEditing()" [class.dark:bg-white/10]="isEditing()">
-    @if (isEditing()) {
-      <textarea
-        #editArea
-        class="w-full bg-transparent text-gray-900 dark:text-gray-100 text-base font-normal leading-relaxed whitespace-pre-wrap border-0 focus:outline-none focus:ring-0 p-2 rounded"
-        [value]="editableContent()"
-        (input)="onEditInput($event)"
-        placeholder="Edita esta publicacion aqui...">
-      </textarea>
+    @if (isInstagram()) {
+      <!-- Card de Instagram con imagen -->
+      @if (isEditing()) {
+        <textarea
+          #editArea
+          class="w-full bg-transparent text-gray-900 dark:text-gray-100 text-base font-normal leading-relaxed whitespace-pre-wrap border-0 focus:outline-none focus:ring-0 p-2 rounded"
+          [value]="editableContent()"
+          (input)="onEditInput($event)"
+          placeholder="Edita el prompt sugerido aqui...">
+        </textarea>
+      } @else {
+        <!-- Mostrar el prompt sugerido -->
+        <div class="mb-4">
+          <p class="text-sm text-gray-600 dark:text-gray-400 font-semibold mb-2">Prompt sugerido:</p>
+          <p class="text-gray-800 dark:text-gray-200 text-base font-normal leading-relaxed whitespace-pre-wrap p-2">{{ suggestedPrompt() }}</p>
+        </div>
+        
+        <!-- Mostrar la imagen o el spinner de carga -->
+        <div class="mt-4">
+          @if (post().isLoadingImage) {
+            <!-- Spinner de carga -->
+            <div class="flex flex-col items-center justify-center p-8 bg-gray-50 dark:bg-gray-800 rounded-lg">
+              <div class="w-12 h-12 border-4 border-gray-300 dark:border-gray-600 border-t-blue-500 rounded-full animate-spin"></div>
+              <p class="mt-4 text-gray-600 dark:text-gray-400">Generando imagen...</p>
+            </div>
+          } @else if (post().imageUrl) {
+            <!-- Imagen generada -->
+            <img 
+              [src]="post().imageUrl" 
+              [alt]="suggestedPrompt()"
+              class="w-full rounded-lg shadow-md">
+          }
+        </div>
+      }
     } @else {
-      <p class="text-gray-800 dark:text-gray-200 text-base font-normal leading-relaxed whitespace-pre-wrap p-2" [innerHTML]="formattedContent()"></p>
+      <!-- Card normal para otras redes sociales -->
+      @if (isEditing()) {
+        <textarea
+          #editArea
+          class="w-full bg-transparent text-gray-900 dark:text-gray-100 text-base font-normal leading-relaxed whitespace-pre-wrap border-0 focus:outline-none focus:ring-0 p-2 rounded"
+          [value]="editableContent()"
+          (input)="onEditInput($event)"
+          placeholder="Edita esta publicacion aqui...">
+        </textarea>
+      } @else {
+        <p class="text-gray-800 dark:text-gray-200 text-base font-normal leading-relaxed whitespace-pre-wrap p-2" [innerHTML]="formattedContent()"></p>
+      }
     }
   </div>
 </div>

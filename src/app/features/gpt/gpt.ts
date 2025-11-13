@@ -164,11 +164,65 @@ export class Gpt {
         this.socialPosts.set(posts);
 
         console.log('Generated social posts:', this.socialPosts());
-        this.isLoading.set(false);
+        
+        // Buscar el post de Instagram y generar la imagen
+        const instagramPost = posts.find(post => post.platform.toLowerCase() === 'instagram');
+        if (instagramPost?.suggested_image_prompt) {
+          this.generateInstagramImage(instagramPost.suggested_image_prompt);
+        } else {
+          this.isLoading.set(false);
+        }
       },
       error: (error) => {
         console.error('Error al generar publicaciones:', error);
         this.clearSocialPosts();
+      }
+    });
+  }
+
+  /**
+   * Genera la imagen para Instagram basándose en el prompt sugerido.
+   * @param prompt - Prompt sugerido para generar la imagen
+   */
+  private generateInstagramImage(prompt: string): void {
+    // Marcar que Instagram está cargando la imagen
+    this.socialPosts.update(posts =>
+      posts.map(post =>
+        post.platform.toLowerCase() === 'instagram'
+          ? { ...post, isLoadingImage: true }
+          : post
+      )
+    );
+
+    // Llamar al servicio para generar la imagen
+    this.gptService.generateImage(prompt, '').subscribe({
+      next: (response) => {
+        console.log('Image generated:', response);
+        
+        // Actualizar el post de Instagram con la URL de la imagen
+        this.socialPosts.update(posts =>
+          posts.map(post =>
+            post.platform.toLowerCase() === 'instagram'
+              ? { ...post, imageUrl: response.url, isLoadingImage: false }
+              : post
+          )
+        );
+        
+        this.isLoading.set(false);
+      },
+      error: (error) => {
+        console.error('Error al generar imagen de Instagram:', error);
+        
+        // Marcar el error en el post de Instagram
+        this.socialPosts.update(posts =>
+          posts.map(post =>
+            post.platform.toLowerCase() === 'instagram'
+              ? { ...post, isLoadingImage: false }
+              : post
+          )
+        );
+        
+        this.isLoading.set(false);
       }
     });
   }

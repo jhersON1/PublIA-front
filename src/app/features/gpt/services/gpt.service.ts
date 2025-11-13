@@ -22,6 +22,16 @@ export interface GeneratePostsResponse {
   networks: Record<string, NetworkPost>;
 }
 
+export interface GenerateImageRequest {
+  prompt: string;
+  previousResponseId: string;
+}
+
+export interface GenerateImageResponse {
+  url: string;
+  responseId: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -29,6 +39,7 @@ export class GptService {
   private readonly BASE_URL = 'http://localhost:3000/gpt';
   private readonly CHAT_URL = `${this.BASE_URL}/chat`;
   private readonly GENERATE_POSTS_URL = `${this.BASE_URL}/generate-posts`;
+  private readonly GENERATE_IMAGE_URL = `${this.BASE_URL}/generate-image`;
 
   private http: HttpClient = inject(HttpClient);
 
@@ -44,5 +55,13 @@ export class GptService {
   generatePosts(prompt: string): Observable<GeneratePostsResponse> {
     const body: GeneratePostsRequest = { prompt };
     return this.http.post<GeneratePostsResponse>(this.GENERATE_POSTS_URL, body);
+  }
+
+  generateImage(prompt: string, previousResponseId: string = ''): Observable<GenerateImageResponse> {
+    const body: GenerateImageRequest = {
+      prompt,
+      previousResponseId
+    };
+    return this.http.post<GenerateImageResponse>(this.GENERATE_IMAGE_URL, body);
   }
 }

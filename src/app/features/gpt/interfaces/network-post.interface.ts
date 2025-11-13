@@ -5,5 +5,7 @@ export interface NetworkPost {
   character_count?: number;
   suggested_image_prompt?: string;
   tone?: string;
+  imageUrl?: string;
+  isLoadingImage?: boolean;
   [key: string]: unknown;
 }
