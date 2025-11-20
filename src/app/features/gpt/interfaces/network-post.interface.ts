@@ -7,6 +7,7 @@ export interface NetworkPost {
   tone?: string;
   imageUrl?: string;
   isLoadingImage?: boolean;
+  localImageFile?: File;
   videoUrl?: string;
   isLoadingVideo?: boolean;
   [key: string]: unknown;

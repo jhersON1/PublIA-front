@@ -16,6 +16,7 @@ export class SocialPostCard {
 
   copyContent = output<string>();
   updateContent = output<{ platform: string; text: string }>();
+  updateImageFile = output<{ platform: string; file: File }>();
 
   isEditing = signal(false);
   editableContent = signal('');
@@ -114,6 +115,7 @@ export class SocialPostCard {
   onImageSelected(file: File) {
     const objectUrl = URL.createObjectURL(file);
     this.currentImageUrl.set(objectUrl);
+    this.updateImageFile.emit({ platform: this.post().platform, file });
   }
 
   onVideoSelected(file: File) {

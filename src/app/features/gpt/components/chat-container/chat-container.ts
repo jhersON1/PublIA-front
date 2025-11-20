@@ -20,6 +20,7 @@ export class ChatContainer {
   copyToClipboard = output<string>();
   regenerateResponse = output<void>();
   updatePost = output<{ platform: string; text: string }>();
+  updateImageFile = output<{ platform: string; file: File }>();
   publishAll = output<void>();
 
   onCopyToClipboard(content: string): void {
@@ -32,6 +33,10 @@ export class ChatContainer {
 
   onUpdatePost(update: { platform: string; text: string }): void {
     this.updatePost.emit(update);
+  }
+
+  onUpdateImageFile(update: { platform: string; file: File }): void {
+    this.updateImageFile.emit(update);
   }
 
   onPublishAll(): void {

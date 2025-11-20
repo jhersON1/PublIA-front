@@ -11,6 +11,8 @@ import { AVATAR_URLS } from './constants/gpt.constants';
 
 import { FacebookService } from './services/facebook';
 import { LinkedInService } from './services/linkedin';
+import { InstagramService } from './services/instagram';
+import { CloudinaryService } from './services/cloudinary';
 import { PLATFORMS } from './constants/gpt.constants';
 
 @Component({
@@ -35,7 +37,9 @@ export class Gpt {
     private sidebarService: SidebarService,
     private clipboardService: ClipboardService,
     private facebookService: FacebookService,
-    private linkedInService: LinkedInService
+    private linkedInService: LinkedInService,
+    private instagramService: InstagramService,
+    private cloudinaryService: CloudinaryService
   ) {
     // Effect para reaccionar a los cambios en el trigger de nuevo chat
     effect(() => {
@@ -65,6 +69,20 @@ export class Gpt {
       posts.map(post =>
         post.platform === update.platform
           ? { ...post, text: update.text }
+          : post
+      )
+    );
+  }
+
+  /**
+   * Almacena el archivo de imagen seleccionado localmente en el post correspondiente.
+   * @param update - Objeto con la plataforma y el archivo
+   */
+  handleUpdateImageFile(update: { platform: string; file: File }): void {
+    this.socialPosts.update(posts =>
+      posts.map(post =>
+        post.platform === update.platform
+          ? { ...post, localImageFile: update.file }
           : post
       )
     );
@@ -172,6 +190,49 @@ export class Gpt {
           console.error('Error publishing to LinkedIn:', error);
         }
       });
+    }
+
+    // Instagram: upload to Cloudinary first, then publish
+    const instagramPost = this.socialPosts().find(p => p.platform.toLowerCase() === PLATFORMS.INSTAGRAM);
+    if (instagramPost) {
+      // Check if there's a local image file to upload
+      if (instagramPost.localImageFile) {
+        // Upload to Cloudinary first
+        this.cloudinaryService.uploadFile(instagramPost.localImageFile).subscribe({
+          next: (cloudinaryResponse) => {
+            // Use secure_url from Cloudinary response
+            this.instagramService.publishInstagram({
+              imageUrl: cloudinaryResponse.secure_url,
+              caption: instagramPost.text
+            }).subscribe({
+              next: (response) => {
+                console.log('Instagram post published:', response);
+              },
+              error: (error) => {
+                console.error('Error publishing to Instagram:', error);
+              }
+            });
+          },
+          error: (error) => {
+            console.error('Error uploading image to Cloudinary:', error);
+          }
+        });
+      } else if (instagramPost.imageUrl) {
+        // If there's a generated imageUrl, use it directly
+        this.instagramService.publishInstagram({
+          imageUrl: instagramPost.imageUrl,
+          caption: instagramPost.text
+        }).subscribe({
+          next: (response) => {
+            console.log('Instagram post published:', response);
+          },
+          error: (error) => {
+            console.error('Error publishing to Instagram:', error);
+          }
+        });
+      } else {
+        console.warn('Instagram post has no image to publish');
+      }
     }
   }
 
