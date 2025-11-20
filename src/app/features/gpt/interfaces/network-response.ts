@@ -5,3 +5,9 @@ export interface SocialPostResponse {
   permalink?: string;
   status: 'published';
 }
+
+export interface TiktokResponse {
+  success: boolean;
+  message: string;
+  publish_id: string;
+}

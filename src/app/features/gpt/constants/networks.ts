@@ -12,5 +12,8 @@ export const NETWORK_ENDPOINTS = {
     },
     LINKEDIN: {
         POST_ARTICLE: `${environment.apiUrl}/linkedin/post-article`
+    },
+    TIKTOK: {
+        POST_VIDEO: `${environment.apiUrl}/tiktok/publish-tiktok`
     }
 };

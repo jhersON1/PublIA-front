@@ -121,6 +121,7 @@ export class SocialPostCard {
   onVideoSelected(file: File) {
     const objectUrl = URL.createObjectURL(file);
     this.currentVideoUrl.set(objectUrl);
+    this.updateImageFile.emit({ platform: this.post().platform, file });
   }
 
   private normalize(name: string) {

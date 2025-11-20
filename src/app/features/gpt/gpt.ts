@@ -13,6 +13,8 @@ import { FacebookService } from './services/facebook';
 import { LinkedInService } from './services/linkedin';
 import { InstagramService } from './services/instagram';
 import { CloudinaryService } from './services/cloudinary';
+import { WhatsAppService } from './services/whatsapp';
+import { Tiktok } from './services/tiktok';
 import { PLATFORMS } from './constants/gpt.constants';
 
 @Component({
@@ -39,7 +41,9 @@ export class Gpt {
     private facebookService: FacebookService,
     private linkedInService: LinkedInService,
     private instagramService: InstagramService,
-    private cloudinaryService: CloudinaryService
+    private cloudinaryService: CloudinaryService,
+    private whatsAppService: WhatsAppService,
+    private tiktokService: Tiktok
   ) {
     // Effect para reaccionar a los cambios en el trigger de nuevo chat
     effect(() => {
@@ -232,6 +236,55 @@ export class Gpt {
         });
       } else {
         console.warn('Instagram post has no image to publish');
+      }
+    }
+
+    // WhatsApp: publish with static to and languageCode
+    const whatsappPost = this.socialPosts().find(p => p.platform.toLowerCase() === PLATFORMS.WHATSAPP);
+    if (whatsappPost) {
+      this.whatsAppService.publishWhatsApp({
+        to: '59172184204',
+        templateName: whatsappPost.text,
+        languageCode: 'en_US'
+      }).subscribe({
+        next: (response) => {
+          console.log('WhatsApp message sent:', response);
+        },
+        error: (error) => {
+          console.error('Error sending WhatsApp message:', error);
+        }
+      });
+    }
+
+    // TikTok: publish video
+    const tiktokPost = this.socialPosts().find(p => p.platform.toLowerCase() === PLATFORMS.TIKTOK);
+    if (tiktokPost) {
+      if (tiktokPost.localImageFile) {
+        this.tiktokService.publishVideo(tiktokPost.localImageFile).subscribe({
+          next: (response) => {
+            console.log('TikTok video published:', response);
+            if (response.success) {
+              console.log(response.message);
+            }
+          },
+          error: (error) => {
+            console.error('Error publishing to TikTok:', error);
+          }
+        });
+      } else if (tiktokPost.videoUrl) {
+        this.tiktokService.publishVideo(tiktokPost.videoUrl).subscribe({
+          next: (response) => {
+            console.log('TikTok video published:', response);
+            if (response.success) {
+              console.log(response.message);
+            }
+          },
+          error: (error) => {
+            console.error('Error publishing to TikTok:', error);
+          }
+        });
+      } else {
+        console.warn('TikTok post has no video file to publish');
       }
     }
   }
