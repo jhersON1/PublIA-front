@@ -9,6 +9,10 @@ import { SidebarService } from '../../services/sidebar.service';
 import { ClipboardService } from '../../shared/services/clipboard.service';
 import { AVATAR_URLS } from './constants/gpt.constants';
 
+import { FacebookService } from './services/facebook';
+import { LinkedInService } from './services/linkedin';
+import { PLATFORMS } from './constants/gpt.constants';
+
 @Component({
   selector: 'app-gpt',
   imports: [Sidebar, ChatContainer, ChatInput],
@@ -29,7 +33,9 @@ export class Gpt {
   constructor(
     private gptService: GptService,
     private sidebarService: SidebarService,
-    private clipboardService: ClipboardService
+    private clipboardService: ClipboardService,
+    private facebookService: FacebookService,
+    private linkedInService: LinkedInService
   ) {
     // Effect para reaccionar a los cambios en el trigger de nuevo chat
     effect(() => {
@@ -132,9 +138,41 @@ export class Gpt {
   /**
    * Maneja la publicación de todas las publicaciones sociales (placeholder para futura implementación).
    */
+  /**
+   * Maneja la publicación de todas las publicaciones sociales (placeholder para futura implementación).
+   */
   handlePublishAll(): void {
     console.log('Publicar todas las publicaciones', this.socialPosts());
-    // Aquí se implementará la lógica para publicar todas las publicaciones en cada red social
+
+    const facebookPost = this.socialPosts().find(p => p.platform.toLowerCase() === PLATFORMS.FACEBOOK);
+    if (facebookPost) {
+      this.facebookService.publishFacebook({ text: facebookPost.text }).subscribe({
+        next: (response) => {
+          console.log('Facebook post published:', response);
+          // Aquí podrías actualizar el estado del post o mostrar una notificación
+        },
+        error: (error) => {
+          console.error('Error publishing to Facebook:', error);
+        }
+      });
+    }
+
+    const linkedInPost = this.socialPosts().find(p => p.platform.toLowerCase() === PLATFORMS.LINKEDIN);
+    if (linkedInPost) {
+      this.linkedInService.publishLinkedIn({
+        text: linkedInPost.text,
+        articleUrl: 'https://blog.linkedin.com/',
+        articleTitle: 'Official LinkedIn Blog',
+        articleDescription: 'Your source for insights and information about LinkedIn.'
+      }).subscribe({
+        next: (response) => {
+          console.log('LinkedIn post published:', response);
+        },
+        error: (error) => {
+          console.error('Error publishing to LinkedIn:', error);
+        }
+      });
+    }
   }
 
   // Private methods
