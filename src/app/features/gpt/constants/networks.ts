@@ -8,7 +8,8 @@ export const NETWORK_ENDPOINTS = {
         POST_IMAGE: `${environment.apiUrl}/meta/instagram/post-image`
     },
     WHATSAPP: {
-        SEND_TEMPLATE: `${environment.apiUrl}/meta/whatsapp/send-template`
+        SEND_TEMPLATE: `${environment.apiUrl}/meta/whatsapp/send-template`,
+        SEND_TEXT: `${environment.apiUrl}/meta/whatsapp/send-text`
     },
     LINKEDIN: {
         POST_ARTICLE: `${environment.apiUrl}/linkedin/post-article`

@@ -254,11 +254,17 @@ export class Gpt {
   }
 
   private publishToWhatsApp(post: NetworkPost): void {
-    this.whatsAppService.publishWhatsApp({
-      to: '59172184204',
-      templateName: post.text,
-      languageCode: 'en_US'
-    }).subscribe({
+    this.whatsAppService.publishWhatsApp(
+      {
+        messaging_product: "whatsapp",
+        to: "59172184204",
+        type: "text",
+        text: {
+          preview_url: false,
+          body: post.text
+        }
+      }
+    ).subscribe({
       next: (response) => {
         console.log('WhatsApp message sent:', response);
       },
