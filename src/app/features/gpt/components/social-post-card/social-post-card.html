@@ -41,6 +41,28 @@
       </app-image-container>
     </div>
     }
+    } @else if (isTikTok()) {
+    <!-- Card de TikTok con video -->
+    @if (isEditing()) {
+    <textarea #editArea
+      class="w-full bg-transparent text-gray-900 dark:text-gray-100 text-base font-normal leading-relaxed whitespace-pre-wrap border-0 focus:outline-none focus:ring-0 p-2 rounded"
+      [value]="editableContent()" (input)="onEditInput($event)" placeholder="Edita el prompt sugerido aqui...">
+        </textarea>
+    } @else {
+    <!-- Mostrar el prompt sugerido -->
+    <div class="mb-4">
+      <p class="text-sm text-gray-600 dark:text-gray-400 font-semibold mb-2">Prompt sugerido:</p>
+      <p class="text-gray-800 dark:text-gray-200 text-base font-normal leading-relaxed whitespace-pre-wrap p-2">{{
+        suggestedPrompt() }}</p>
+    </div>
+
+    <!-- Mostrar el video o el spinner de carga -->
+    <div class="mt-4">
+      <app-video-container [videoUrl]="currentVideoUrl()" [isLoading]="post().isLoadingVideo ?? false"
+        (videoSelected)="onVideoSelected($event)">
+      </app-video-container>
+    </div>
+    }
     } @else {
     <!-- Card normal para otras redes sociales -->
     @if (isEditing()) {

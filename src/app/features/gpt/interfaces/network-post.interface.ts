@@ -7,5 +7,7 @@ export interface NetworkPost {
   tone?: string;
   imageUrl?: string;
   isLoadingImage?: boolean;
+  videoUrl?: string;
+  isLoadingVideo?: boolean;
   [key: string]: unknown;
 }

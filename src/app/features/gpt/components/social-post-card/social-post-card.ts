@@ -1,11 +1,12 @@
 import { Component, ChangeDetectionStrategy, computed, output, input, signal, effect, viewChild, ElementRef, HostListener } from '@angular/core';
 import type { NetworkPost } from '../../interfaces/network-post.interface';
 import { ImageContainerComponent } from '../image-container/image-container.component';
+import { VideoContainerComponent } from '../video-container/video-container.component';
 
 @Component({
   selector: 'app-social-post-card',
   standalone: true,
-  imports: [ImageContainerComponent],
+  imports: [ImageContainerComponent, VideoContainerComponent],
   templateUrl: './social-post-card.html',
   styleUrl: './social-post-card.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -21,12 +22,15 @@ export class SocialPostCard {
 
   // Signal local para manejar la imagen (generada o subida localmente)
   currentImageUrl = signal<string | undefined>(undefined);
+  // Signal local para manejar el video (generado o subido localmente)
+  currentVideoUrl = signal<string | undefined>(undefined);
 
   editArea = viewChild<ElementRef<HTMLTextAreaElement>>('editArea');
 
   platformLabel = computed(() => this.post().platform ?? 'Red social');
 
   isInstagram = computed(() => this.platformLabel().toLowerCase() === 'instagram');
+  isTikTok = computed(() => this.platformLabel().toLowerCase() === 'tiktok');
 
   iconUrl = computed(() => {
     const file = this.normalize(this.platformLabel());
@@ -51,6 +55,12 @@ export class SocialPostCard {
       const generatedUrl = this.post().imageUrl;
       if (generatedUrl && !this.currentImageUrl()) {
         this.currentImageUrl.set(generatedUrl);
+      }
+
+      // Sincronizar el video generado inicial si existe
+      const generatedVideoUrl = this.post().videoUrl;
+      if (generatedVideoUrl && !this.currentVideoUrl()) {
+        this.currentVideoUrl.set(generatedVideoUrl);
       }
     }, { allowSignalWrites: true });
 
@@ -110,6 +120,11 @@ export class SocialPostCard {
   onImageSelected(file: File) {
     const objectUrl = URL.createObjectURL(file);
     this.currentImageUrl.set(objectUrl);
+  }
+
+  onVideoSelected(file: File) {
+    const objectUrl = URL.createObjectURL(file);
+    this.currentVideoUrl.set(objectUrl);
   }
 
   private normalize(name: string) {
