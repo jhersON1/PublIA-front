@@ -66,10 +66,7 @@ export class SocialPostCard {
 
     effect(() => {
       if (!this.isEditing()) {
-        // Para Instagram, editar el prompt sugerido; para otros, el texto
-        const content = this.isInstagram()
-          ? (this.post().text ?? '').trim()
-          : (this.post().suggested_image_prompt ?? '').trim();
+        const content = (this.post().text ?? '').trim();
         this.editableContent.set(content);
       }
       if (this.isEditing()) {
@@ -92,10 +89,7 @@ export class SocialPostCard {
   }
 
   onCopy() {
-    // Para Instagram, copiar el prompt sugerido; para otros, el texto
-    const content = this.isInstagram()
-      ? (this.post().text ?? '').trim()
-      : (this.post().suggested_image_prompt ?? '').trim();
+    const content = (this.post().text ?? '').trim();
     this.copyContent.emit(content);
   }
 
