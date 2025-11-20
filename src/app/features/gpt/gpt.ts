@@ -6,10 +6,12 @@ import type { Message } from './interfaces/message.interface';
 import { GptService, type ChatResponse } from './services/gpt.service';
 import type { NetworkPost } from './interfaces/network-post.interface';
 import { SidebarService } from '../../services/sidebar.service';
+import { ClipboardService } from '../../shared/services/clipboard.service';
+import { AVATAR_URLS } from './constants/gpt.constants';
 
 @Component({
   selector: 'app-gpt',
-  imports: [ Sidebar, ChatContainer, ChatInput],
+  imports: [Sidebar, ChatContainer, ChatInput],
   templateUrl: './gpt.html',
   styleUrl: './gpt.css',
 })
@@ -19,14 +21,15 @@ export class Gpt {
   socialPosts = signal<NetworkPost[]>([]);
   showAIResponse = signal<boolean>(false);
   isLoading = signal<boolean>(false);
-  
+
   // Private properties
   private lastResponseId: string = '';
 
   // Constructor
   constructor(
     private gptService: GptService,
-    private sidebarService: SidebarService
+    private sidebarService: SidebarService,
+    private clipboardService: ClipboardService
   ) {
     // Effect para reaccionar a los cambios en el trigger de nuevo chat
     effect(() => {
@@ -38,16 +41,13 @@ export class Gpt {
   }
 
   // Public methods
-  
+
   /**
    * Copia el contenido proporcionado al portapapeles del sistema.
    * @param content - Texto a copiar al portapapeles
    */
   handleCopyToClipboard(content: string): void {
-    navigator.clipboard.writeText(content).then(() => {
-      console.log('Copied to clipboard:', content);
-      // Aquí puedes agregar una notificación toast
-    });
+    this.clipboardService.copyToClipboard(content);
   }
 
   /**
@@ -55,9 +55,9 @@ export class Gpt {
    * @param update - Objeto con la plataforma y el nuevo texto del post
    */
   handleUpdatePost(update: { platform: string; text: string }): void {
-    this.socialPosts.update(posts => 
-      posts.map(post => 
-        post.platform === update.platform 
+    this.socialPosts.update(posts =>
+      posts.map(post =>
+        post.platform === update.platform
           ? { ...post, text: update.text }
           : post
       )
@@ -93,10 +93,10 @@ export class Gpt {
     if (!prompt) {
       return;
     }
-    
+
     this.addMessage('user', prompt);
     this.isLoading.set(true);
-    
+
     this.gptService.sendMessage(prompt, this.lastResponseId).subscribe({
       next: (response) => this.handleChatSuccess(response),
       error: (error) => this.handleChatError(error),
@@ -130,7 +130,7 @@ export class Gpt {
   }
 
   // Private methods
-  
+
   /**
    * Añade un nuevo mensaje al historial de conversación.
    * @param sender - Emisor del mensaje ('user' o 'ai')
@@ -142,89 +142,11 @@ export class Gpt {
       sender,
       content,
       time: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
-      avatar: sender === 'user' 
-        ? 'https://lh3.googleusercontent.com/aida-public/AB6AXuBG0-rnfDL9KvPqLiOm5wriU1wDs1rmvwlPjtvf4h9Dx_3srAOllLv3fxvMDEL1DcffIzxpydAJUqsodMGARd9c0Ppjv0XOnmYRwXE4OoGB2yzmU_UZeaDkOyW_GGNtcFrZqjhpfGRS8xV_RoEThdZbxcQweVdVTpvlHJrYzo9PySnnMF8yhPdjY7tba9ve71YO9R69AEoY7WhzoGd1gcAh4JFHa330oSxlYFlloyPnrJD3AHeW5UtB_fvjc3F6ZzNJqfdpk99IDzKu'
-        : 'https://lh3.googleusercontent.com/aida-public/AB6AXuAdhvxftuCM4RaZTiXoLj1pqh7ALtTFyquVCfHf9iRbgjZ3E_GptnEWP_ZC8FfRfYf8ZG5Y57biMT6CvRqWTArTMmLUHKnbeYFjnKITdxEqFuSQw_SO0cMy48nbRHdhXLVGVi-cG3VSVBnJFtX36eBysrgnCsru_-PPEfKg7rTFMPb7-1bqCIWMqXOUK0L0HLNno1fwLfkPWTuSxbQ8SUtJOjkXQRkeNvFJTsgsvVkLbmNNpmpFp-4T40xcaLu9_FUXagcYR_mftybL',
+      avatar: sender === 'user' ? AVATAR_URLS.USER : AVATAR_URLS.AI,
       responseId
     };
-    
+
     this.messages.update(msgs => [...msgs, message]);
-  }
-
-  /**
-   * Solicita al servicio la generación de publicaciones para redes sociales basadas en el contexto.
-   * @param context - Contexto extraído de la conversación para generar publicaciones
-   */
-  private generateSocialPostsFromContext(context: string): void {
-    this.gptService.generatePosts(context).subscribe({
-      next: (response) => {
-        console.log('Response:', response);
-        const posts: NetworkPost[] = Object.values(response.networks);
-
-        this.socialPosts.set(posts);
-
-        console.log('Generated social posts:', this.socialPosts());
-        
-        // Buscar el post de Instagram y generar la imagen
-        const instagramPost = posts.find(post => post.platform.toLowerCase() === 'instagram');
-        if (instagramPost?.suggested_image_prompt) {
-          this.generateInstagramImage(instagramPost.suggested_image_prompt);
-        } else {
-          this.isLoading.set(false);
-        }
-      },
-      error: (error) => {
-        console.error('Error al generar publicaciones:', error);
-        this.clearSocialPosts();
-      }
-    });
-  }
-
-  /**
-   * Genera la imagen para Instagram basándose en el prompt sugerido.
-   * @param prompt - Prompt sugerido para generar la imagen
-   */
-  private generateInstagramImage(prompt: string): void {
-    // Marcar que Instagram está cargando la imagen
-    this.socialPosts.update(posts =>
-      posts.map(post =>
-        post.platform.toLowerCase() === 'instagram'
-          ? { ...post, isLoadingImage: true }
-          : post
-      )
-    );
-
-    // Llamar al servicio para generar la imagen
-    this.gptService.generateImage(prompt, '').subscribe({
-      next: (response) => {
-        console.log('Image generated:', response);
-        
-        // Actualizar el post de Instagram con la URL de la imagen
-        this.socialPosts.update(posts =>
-          posts.map(post =>
-            post.platform.toLowerCase() === 'instagram'
-              ? { ...post, imageUrl: response.url, isLoadingImage: false }
-              : post
-          )
-        );
-        
-        this.isLoading.set(false);
-      },
-      error: (error) => {
-        console.error('Error al generar imagen de Instagram:', error);
-        
-        // Marcar el error en el post de Instagram
-        this.socialPosts.update(posts =>
-          posts.map(post =>
-            post.platform.toLowerCase() === 'instagram'
-              ? { ...post, isLoadingImage: false }
-              : post
-          )
-        );
-        
-        this.isLoading.set(false);
-      }
-    });
   }
 
   /**
@@ -237,11 +159,33 @@ export class Gpt {
     this.lastResponseId = response.responseId;
 
     if (this.hasContext(response.context)) {
-      this.generateSocialPostsFromContext(response.context);
+      this.generateSocialContent(response.context);
       return;
     }
 
     this.clearSocialPosts();
+  }
+
+  /**
+   * Solicita al servicio la generación de contenido social (posts e imágenes).
+   * @param context - Contexto extraído de la conversación
+   */
+  private generateSocialContent(context: string): void {
+    this.gptService.generateSocialContent(context).subscribe({
+      next: (posts) => {
+        this.socialPosts.set(posts);
+
+        // Si ya no hay posts cargando imagen, terminamos el loading
+        const isLoadingImage = posts.some(p => p.isLoadingImage);
+        if (!isLoadingImage) {
+          this.isLoading.set(false);
+        }
+      },
+      error: (error) => {
+        console.error('Error al generar contenido social:', error);
+        this.clearSocialPosts();
+      }
+    });
   }
 
   /**

@@ -44,8 +44,8 @@ export class SocialPostCard {
       if (!this.isEditing()) {
         // Para Instagram, editar el prompt sugerido; para otros, el texto
         const content = this.isInstagram() 
-          ? (this.post().suggested_image_prompt ?? '').trim()
-          : (this.post().text ?? '').trim();
+          ? (this.post().text ?? '').trim()
+          : (this.post().suggested_image_prompt ?? '').trim();
         this.editableContent.set(content);
       }
       if (this.isEditing()) {
