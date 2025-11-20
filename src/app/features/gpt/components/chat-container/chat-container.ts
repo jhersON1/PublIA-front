@@ -1,12 +1,12 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
-import { ChatMessage} from '../chat-message/chat-message';
+import { ChatMessage } from '../chat-message/chat-message';
 import { SocialPostCard } from '../social-post-card/social-post-card';
 import { Message } from '../../interfaces/message.interface';
 import type { NetworkPost } from '../../interfaces/network-post.interface';
 
 @Component({
   selector: 'app-chat-container',
-  imports: [ ChatMessage, SocialPostCard],
+  imports: [ChatMessage, SocialPostCard],
   templateUrl: './chat-container.html',
   styleUrl: './chat-container.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -20,6 +20,7 @@ export class ChatContainer {
   copyToClipboard = output<string>();
   regenerateResponse = output<void>();
   updatePost = output<{ platform: string; text: string }>();
+  publishAll = output<void>();
 
   onCopyToClipboard(content: string): void {
     this.copyToClipboard.emit(content);
@@ -31,6 +32,10 @@ export class ChatContainer {
 
   onUpdatePost(update: { platform: string; text: string }): void {
     this.updatePost.emit(update);
+  }
+
+  onPublishAll(): void {
+    this.publishAll.emit();
   }
 
   trackByPlatform(index: number, post: NetworkPost): string {

@@ -129,6 +129,14 @@ export class Gpt {
     // Aquí puedes agregar lógica para capturar input de voz
   }
 
+  /**
+   * Maneja la publicación de todas las publicaciones sociales (placeholder para futura implementación).
+   */
+  handlePublishAll(): void {
+    console.log('Publicar todas las publicaciones', this.socialPosts());
+    // Aquí se implementará la lógica para publicar todas las publicaciones en cada red social
+  }
+
   // Private methods
 
   /**

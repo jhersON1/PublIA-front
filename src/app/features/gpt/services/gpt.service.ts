@@ -77,38 +77,38 @@ export class GptService {
         const posts = Object.values(response.networks);
         const instagramPost = posts.find(p => p.platform.toLowerCase() === PLATFORMS.INSTAGRAM);
 
-        if (instagramPost?.suggested_image_prompt) {
-          // Marcar que se está cargando la imagen
-          const postsWithLoading = posts.map(p =>
-            p.platform.toLowerCase() === PLATFORMS.INSTAGRAM
-              ? { ...p, isLoadingImage: true }
-              : p
-          );
+        // if (instagramPost?.suggested_image_prompt) {
+        //   // Marcar que se está cargando la imagen
+        //   const postsWithLoading = posts.map(p =>
+        //     p.platform.toLowerCase() === PLATFORMS.INSTAGRAM
+        //       ? { ...p, isLoadingImage: true }
+        //       : p
+        //   );
 
-          return concat(
-            of(postsWithLoading), // Emitir posts con estado de carga
-            this.generateImage(instagramPost.suggested_image_prompt).pipe(
-              map(imageResponse => {
-                // Actualizar post con la imagen
-                return posts.map(p =>
-                  p.platform.toLowerCase() === PLATFORMS.INSTAGRAM
-                    ? { ...p, imageUrl: imageResponse.url, isLoadingImage: false }
-                    : p
-                );
-              }),
-              catchError(error => {
-                console.error('Error generating image:', error);
-                // En caso de error, devolvemos los posts originales pero sin loading
-                const postsWithError = posts.map(p =>
-                  p.platform.toLowerCase() === PLATFORMS.INSTAGRAM
-                    ? { ...p, isLoadingImage: false }
-                    : p
-                );
-                return of(postsWithError);
-              })
-            )
-          );
-        }
+        //   return concat(
+        //     of(postsWithLoading), // Emitir posts con estado de carga
+        //     this.generateImage(instagramPost.suggested_image_prompt).pipe(
+        //       map(imageResponse => {
+        //         // Actualizar post con la imagen
+        //         return posts.map(p =>
+        //           p.platform.toLowerCase() === PLATFORMS.INSTAGRAM
+        //             ? { ...p, imageUrl: imageResponse.url, isLoadingImage: false }
+        //             : p
+        //         );
+        //       }),
+        //       catchError(error => {
+        //         console.error('Error generating image:', error);
+        //         // En caso de error, devolvemos los posts originales pero sin loading
+        //         const postsWithError = posts.map(p =>
+        //           p.platform.toLowerCase() === PLATFORMS.INSTAGRAM
+        //             ? { ...p, isLoadingImage: false }
+        //             : p
+        //         );
+        //         return of(postsWithError);
+        //       })
+        //     )
+        //   );
+        // }
 
         return of(posts);
       })

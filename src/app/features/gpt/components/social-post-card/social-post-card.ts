@@ -9,19 +9,19 @@ import type { NetworkPost } from '../../interfaces/network-post.interface';
 })
 export class SocialPostCard {
   post = input.required<NetworkPost>();
-  
+
   copyContent = output<string>();
   updateContent = output<{ platform: string; text: string }>();
-  
+
   isEditing = signal(false);
   editableContent = signal('');
-  
+
   editArea = viewChild<ElementRef<HTMLTextAreaElement>>('editArea');
-  
+
   platformLabel = computed(() => this.post().platform ?? 'Red social');
-  
+
   isInstagram = computed(() => this.platformLabel().toLowerCase() === 'instagram');
-  
+
   iconUrl = computed(() => {
     const file = this.normalize(this.platformLabel());
     return `${this.ICON_BASE_PATH}${file}.svg`;
@@ -43,7 +43,7 @@ export class SocialPostCard {
     effect(() => {
       if (!this.isEditing()) {
         // Para Instagram, editar el prompt sugerido; para otros, el texto
-        const content = this.isInstagram() 
+        const content = this.isInstagram()
           ? (this.post().text ?? '').trim()
           : (this.post().suggested_image_prompt ?? '').trim();
         this.editableContent.set(content);
@@ -57,7 +57,7 @@ export class SocialPostCard {
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent) {
     const target = event.target as HTMLElement;
-    
+
     if (this.isEditing() && !target.closest('app-social-post-card')) {
       this.saveAndCloseEdit();
     }
@@ -70,8 +70,8 @@ export class SocialPostCard {
   onCopy() {
     // Para Instagram, copiar el prompt sugerido; para otros, el texto
     const content = this.isInstagram()
-      ? (this.post().suggested_image_prompt ?? '').trim()
-      : (this.post().text ?? '').trim();
+      ? (this.post().text ?? '').trim()
+      : (this.post().suggested_image_prompt ?? '').trim();
     this.copyContent.emit(content);
   }
 
