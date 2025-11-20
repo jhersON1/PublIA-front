@@ -1,27 +1,38 @@
 import { Component, ChangeDetectionStrategy, computed, output, input, signal, effect, viewChild, ElementRef, HostListener } from '@angular/core';
 import type { NetworkPost } from '../../interfaces/network-post.interface';
+import { ImageContainerComponent } from '../image-container/image-container.component';
+import { VideoContainerComponent } from '../video-container/video-container.component';
 
 @Component({
   selector: 'app-social-post-card',
+  standalone: true,
+  imports: [ImageContainerComponent, VideoContainerComponent],
   templateUrl: './social-post-card.html',
   styleUrl: './social-post-card.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SocialPostCard {
   post = input.required<NetworkPost>();
-  
+
   copyContent = output<string>();
   updateContent = output<{ platform: string; text: string }>();
-  
+  updateImageFile = output<{ platform: string; file: File }>();
+
   isEditing = signal(false);
   editableContent = signal('');
-  
+
+  // Signal local para manejar la imagen (generada o subida localmente)
+  currentImageUrl = signal<string | undefined>(undefined);
+  // Signal local para manejar el video (generado o subido localmente)
+  currentVideoUrl = signal<string | undefined>(undefined);
+
   editArea = viewChild<ElementRef<HTMLTextAreaElement>>('editArea');
-  
+
   platformLabel = computed(() => this.post().platform ?? 'Red social');
-  
+
   isInstagram = computed(() => this.platformLabel().toLowerCase() === 'instagram');
-  
+  isTikTok = computed(() => this.platformLabel().toLowerCase() === 'tiktok');
+
   iconUrl = computed(() => {
     const file = this.normalize(this.platformLabel());
     return `${this.ICON_BASE_PATH}${file}.svg`;
@@ -41,11 +52,22 @@ export class SocialPostCard {
 
   constructor() {
     effect(() => {
+      // Sincronizar la imagen generada inicial si existe
+      const generatedUrl = this.post().imageUrl;
+      if (generatedUrl && !this.currentImageUrl()) {
+        this.currentImageUrl.set(generatedUrl);
+      }
+
+      // Sincronizar el video generado inicial si existe
+      const generatedVideoUrl = this.post().videoUrl;
+      if (generatedVideoUrl && !this.currentVideoUrl()) {
+        this.currentVideoUrl.set(generatedVideoUrl);
+      }
+    });
+
+    effect(() => {
       if (!this.isEditing()) {
-        // Para Instagram, editar el prompt sugerido; para otros, el texto
-        const content = this.isInstagram() 
-          ? (this.post().suggested_image_prompt ?? '').trim()
-          : (this.post().text ?? '').trim();
+        const content = (this.post().text ?? '').trim();
         this.editableContent.set(content);
       }
       if (this.isEditing()) {
@@ -57,7 +79,7 @@ export class SocialPostCard {
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent) {
     const target = event.target as HTMLElement;
-    
+
     if (this.isEditing() && !target.closest('app-social-post-card')) {
       this.saveAndCloseEdit();
     }
@@ -68,10 +90,7 @@ export class SocialPostCard {
   }
 
   onCopy() {
-    // Para Instagram, copiar el prompt sugerido; para otros, el texto
-    const content = this.isInstagram()
-      ? (this.post().suggested_image_prompt ?? '').trim()
-      : (this.post().text ?? '').trim();
+    const content = (this.post().text ?? '').trim();
     this.copyContent.emit(content);
   }
 
@@ -91,6 +110,18 @@ export class SocialPostCard {
     const { value } = event.target as HTMLTextAreaElement;
     this.editableContent.set(value);
     this.syncEditorHeight();
+  }
+
+  onImageSelected(file: File) {
+    const objectUrl = URL.createObjectURL(file);
+    this.currentImageUrl.set(objectUrl);
+    this.updateImageFile.emit({ platform: this.post().platform, file });
+  }
+
+  onVideoSelected(file: File) {
+    const objectUrl = URL.createObjectURL(file);
+    this.currentVideoUrl.set(objectUrl);
+    this.updateImageFile.emit({ platform: this.post().platform, file });
   }
 
   private normalize(name: string) {

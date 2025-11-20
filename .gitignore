@@ -45,3 +45,4 @@ Thumbs.db
 # Others
 .vscode
 .angular
+/src/environments/environment.ts

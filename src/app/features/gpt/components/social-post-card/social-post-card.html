@@ -1,78 +1,53 @@
 <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white/50 dark:bg-black/20 overflow-hidden">
   <div class="flex items-center justify-between p-3 bg-black/5 dark:bg-white/5">
     <div class="flex items-center gap-2">
-      <img 
-        [src]="iconUrl()" 
-        [alt]="platformLabel()" 
-        (error)="onIconError($event)"
-        class="w-5 h-5">
-      
+      <img [src]="iconUrl()" [alt]="platformLabel()" (error)="onIconError($event)" class="w-5 h-5">
+
       <h3 class="font-bold text-gray-900 dark:text-white">{{ platformLabel() }}</h3>
     </div>
     <div class="flex items-center gap-1">
-      <button
-        type="button"
-        (click)="toggleEditing()"
+      <button type="button" (click)="toggleEditing()"
         class="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-lg hover:bg-black/5 dark:hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
         [attr.aria-pressed]="isEditing()">
         <span class="material-symbols-outlined text-[20px]">edit</span>
       </button>
-      <button
-        type="button"
-        (click)="onCopy()"
+      <button type="button" (click)="onCopy()"
         class="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-lg hover:bg-black/5 dark:hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
         <span class="material-symbols-outlined text-[20px]">content_copy</span>
       </button>
     </div>
   </div>
-  <div class="p-4 rounded-md transition-colors" [class.bg-gray-100]="isEditing()" [class.dark:bg-white/10]="isEditing()">
-    @if (isInstagram()) {
-      <!-- Card de Instagram con imagen -->
-      @if (isEditing()) {
-        <textarea
-          #editArea
-          class="w-full bg-transparent text-gray-900 dark:text-gray-100 text-base font-normal leading-relaxed whitespace-pre-wrap border-0 focus:outline-none focus:ring-0 p-2 rounded"
-          [value]="editableContent()"
-          (input)="onEditInput($event)"
-          placeholder="Edita el prompt sugerido aqui...">
-        </textarea>
-      } @else {
-        <!-- Mostrar el prompt sugerido -->
-        <div class="mb-4">
-          <p class="text-sm text-gray-600 dark:text-gray-400 font-semibold mb-2">Prompt sugerido:</p>
-          <p class="text-gray-800 dark:text-gray-200 text-base font-normal leading-relaxed whitespace-pre-wrap p-2">{{ suggestedPrompt() }}</p>
-        </div>
-        
-        <!-- Mostrar la imagen o el spinner de carga -->
-        <div class="mt-4">
-          @if (post().isLoadingImage) {
-            <!-- Spinner de carga -->
-            <div class="flex flex-col items-center justify-center p-8 bg-gray-50 dark:bg-gray-800 rounded-lg">
-              <div class="w-12 h-12 border-4 border-gray-300 dark:border-gray-600 border-t-blue-500 rounded-full animate-spin"></div>
-              <p class="mt-4 text-gray-600 dark:text-gray-400">Generando imagen...</p>
-            </div>
-          } @else if (post().imageUrl) {
-            <!-- Imagen generada -->
-            <img 
-              [src]="post().imageUrl" 
-              [alt]="suggestedPrompt()"
-              class="w-full rounded-lg shadow-md">
-          }
-        </div>
-      }
+  <div class="p-4 rounded-md transition-colors" [class.bg-gray-100]="isEditing()"
+    [class.dark:bg-white/10]="isEditing()">
+
+    @if (isEditing()) {
+    <textarea #editArea
+      class="w-full bg-transparent text-gray-900 dark:text-gray-100 text-base font-normal leading-relaxed whitespace-pre-wrap border-0 focus:outline-none focus:ring-0 p-2 rounded"
+      [value]="editableContent()" (input)="onEditInput($event)" placeholder="Edita esta publicacion aqui...">
+      </textarea>
     } @else {
-      <!-- Card normal para otras redes sociales -->
-      @if (isEditing()) {
-        <textarea
-          #editArea
-          class="w-full bg-transparent text-gray-900 dark:text-gray-100 text-base font-normal leading-relaxed whitespace-pre-wrap border-0 focus:outline-none focus:ring-0 p-2 rounded"
-          [value]="editableContent()"
-          (input)="onEditInput($event)"
-          placeholder="Edita esta publicacion aqui...">
-        </textarea>
-      } @else {
-        <p class="text-gray-800 dark:text-gray-200 text-base font-normal leading-relaxed whitespace-pre-wrap p-2" [innerHTML]="formattedContent()"></p>
-      }
+    <!-- Texto del post -->
+    <p class="text-gray-800 dark:text-gray-200 text-base font-normal leading-relaxed whitespace-pre-wrap p-2"
+      [innerHTML]="formattedContent()">
+    </p>
+
+    <!-- Contenedor de Imagen (Instagram) -->
+    @if (isInstagram()) {
+    <div class="mt-4">
+      <app-image-container [imageUrl]="currentImageUrl()" [altText]="suggestedPrompt()"
+        [isLoading]="post().isLoadingImage ?? false" (imageSelected)="onImageSelected($event)">
+      </app-image-container>
+    </div>
+    }
+
+    <!-- Contenedor de Video (TikTok) -->
+    @if (isTikTok()) {
+    <div class="mt-4">
+      <app-video-container [videoUrl]="currentVideoUrl()" [isLoading]="post().isLoadingVideo ?? false"
+        (videoSelected)="onVideoSelected($event)">
+      </app-video-container>
+    </div>
+    }
     }
   </div>
 </div>

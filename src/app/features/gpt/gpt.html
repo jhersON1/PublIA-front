@@ -2,20 +2,13 @@
   <div class="flex h-full grow">
     <app-sidebar></app-sidebar>
     <main class="flex flex-1 flex-col h-full">
-      <app-chat-container
-        [messages]="messages()"
-        [socialPosts]="socialPosts()"
-        [showAIResponse]="showAIResponse()"
-        [isLoading]="isLoading()"
-        (copyToClipboard)="handleCopyToClipboard($event)"
-        (regenerateResponse)="handleRegenerateResponse()"
-        (updatePost)="handleUpdatePost($event)">
+      <app-chat-container [messages]="messages()" [socialPosts]="socialPosts()" [showAIResponse]="showAIResponse()"
+        [isLoading]="isLoading()" (copyToClipboard)="handleCopyToClipboard($event)"
+        (regenerateResponse)="handleRegenerateResponse()" (updatePost)="handleUpdatePost($event)"
+        (updateImageFile)="handleUpdateImageFile($event)" (publishAll)="handlePublishAll()">
       </app-chat-container>
-      <app-chat-input
-        [isDisabled]="isLoading()"
-        (sendMessage)="handleSendMessage($event)"
-        (attachFile)="handleAttachFile()"
-        (voiceInput)="handleVoiceInput()">
+      <app-chat-input [isDisabled]="isLoading()" (sendMessage)="handleSendMessage($event)"
+        (attachFile)="handleAttachFile()" (voiceInput)="handleVoiceInput()">
       </app-chat-input>
     </main>
   </div>

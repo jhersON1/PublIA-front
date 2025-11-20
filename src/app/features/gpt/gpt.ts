@@ -6,10 +6,20 @@ import type { Message } from './interfaces/message.interface';
 import { GptService, type ChatResponse } from './services/gpt.service';
 import type { NetworkPost } from './interfaces/network-post.interface';
 import { SidebarService } from '../../services/sidebar.service';
+import { ClipboardService } from '../../shared/services/clipboard.service';
+import { AVATAR_URLS } from './constants/gpt.constants';
+
+import { FacebookService } from './services/facebook';
+import { LinkedInService } from './services/linkedin';
+import { InstagramService } from './services/instagram';
+import { CloudinaryService } from './services/cloudinary';
+import { WhatsAppService } from './services/whatsapp';
+import { Tiktok } from './services/tiktok';
+import { PLATFORMS } from './constants/gpt.constants';
 
 @Component({
   selector: 'app-gpt',
-  imports: [ Sidebar, ChatContainer, ChatInput],
+  imports: [Sidebar, ChatContainer, ChatInput],
   templateUrl: './gpt.html',
   styleUrl: './gpt.css',
 })
@@ -19,14 +29,21 @@ export class Gpt {
   socialPosts = signal<NetworkPost[]>([]);
   showAIResponse = signal<boolean>(false);
   isLoading = signal<boolean>(false);
-  
+
   // Private properties
   private lastResponseId: string = '';
 
   // Constructor
   constructor(
     private gptService: GptService,
-    private sidebarService: SidebarService
+    private sidebarService: SidebarService,
+    private clipboardService: ClipboardService,
+    private facebookService: FacebookService,
+    private linkedInService: LinkedInService,
+    private instagramService: InstagramService,
+    private cloudinaryService: CloudinaryService,
+    private whatsAppService: WhatsAppService,
+    private tiktokService: Tiktok
   ) {
     // Effect para reaccionar a los cambios en el trigger de nuevo chat
     effect(() => {
@@ -38,16 +55,13 @@ export class Gpt {
   }
 
   // Public methods
-  
+
   /**
    * Copia el contenido proporcionado al portapapeles del sistema.
    * @param content - Texto a copiar al portapapeles
    */
   handleCopyToClipboard(content: string): void {
-    navigator.clipboard.writeText(content).then(() => {
-      console.log('Copied to clipboard:', content);
-      // Aquí puedes agregar una notificación toast
-    });
+    this.clipboardService.copyToClipboard(content);
   }
 
   /**
@@ -55,10 +69,24 @@ export class Gpt {
    * @param update - Objeto con la plataforma y el nuevo texto del post
    */
   handleUpdatePost(update: { platform: string; text: string }): void {
-    this.socialPosts.update(posts => 
-      posts.map(post => 
-        post.platform === update.platform 
+    this.socialPosts.update(posts =>
+      posts.map(post =>
+        post.platform === update.platform
           ? { ...post, text: update.text }
+          : post
+      )
+    );
+  }
+
+  /**
+   * Almacena el archivo de imagen seleccionado localmente en el post correspondiente.
+   * @param update - Objeto con la plataforma y el archivo
+   */
+  handleUpdateImageFile(update: { platform: string; file: File }): void {
+    this.socialPosts.update(posts =>
+      posts.map(post =>
+        post.platform === update.platform
+          ? { ...post, localImageFile: update.file }
           : post
       )
     );
@@ -93,10 +121,10 @@ export class Gpt {
     if (!prompt) {
       return;
     }
-    
+
     this.addMessage('user', prompt);
     this.isLoading.set(true);
-    
+
     this.gptService.sendMessage(prompt, this.lastResponseId).subscribe({
       next: (response) => this.handleChatSuccess(response),
       error: (error) => this.handleChatError(error),
@@ -129,8 +157,153 @@ export class Gpt {
     // Aquí puedes agregar lógica para capturar input de voz
   }
 
+  /**
+   * Maneja la publicación de todas las publicaciones sociales (placeholder para futura implementación).
+   */
+  /**
+   * Maneja la publicación de todas las publicaciones sociales (placeholder para futura implementación).
+   */
+  handlePublishAll(): void {
+    console.log('Publicar todas las publicaciones', this.socialPosts());
+
+    this.socialPosts().forEach(post => {
+      switch (post.platform.toLowerCase()) {
+        case PLATFORMS.FACEBOOK:
+          this.publishToFacebook(post);
+          break;
+        case PLATFORMS.LINKEDIN:
+          this.publishToLinkedIn(post);
+          break;
+        case PLATFORMS.INSTAGRAM:
+          this.publishToInstagram(post);
+          break;
+        case PLATFORMS.WHATSAPP:
+          this.publishToWhatsApp(post);
+          break;
+        case PLATFORMS.TIKTOK:
+          this.publishToTikTok(post);
+          break;
+      }
+    });
+  }
+
   // Private methods
-  
+
+  private publishToFacebook(post: NetworkPost): void {
+    this.facebookService.publishFacebook({ text: post.text }).subscribe({
+      next: (response) => {
+        console.log('Facebook post published:', response);
+      },
+      error: (error) => {
+        console.error('Error publishing to Facebook:', error);
+      }
+    });
+  }
+
+  private publishToLinkedIn(post: NetworkPost): void {
+    this.linkedInService.publishLinkedIn({
+      text: post.text,
+      articleUrl: 'https://blog.linkedin.com/',
+      articleTitle: 'Official LinkedIn Blog',
+      articleDescription: 'Your source for insights and information about LinkedIn.'
+    }).subscribe({
+      next: (response) => {
+        console.log('LinkedIn post published:', response);
+      },
+      error: (error) => {
+        console.error('Error publishing to LinkedIn:', error);
+      }
+    });
+  }
+
+  private publishToInstagram(post: NetworkPost): void {
+    if (post.localImageFile) {
+      this.cloudinaryService.uploadFile(post.localImageFile).subscribe({
+        next: (cloudinaryResponse) => {
+          this.instagramService.publishInstagram({
+            imageUrl: cloudinaryResponse.secure_url,
+            caption: post.text
+          }).subscribe({
+            next: (response) => {
+              console.log('Instagram post published:', response);
+            },
+            error: (error) => {
+              console.error('Error publishing to Instagram:', error);
+            }
+          });
+        },
+        error: (error) => {
+          console.error('Error uploading image to Cloudinary:', error);
+        }
+      });
+    } else if (post.imageUrl) {
+      this.instagramService.publishInstagram({
+        imageUrl: post.imageUrl,
+        caption: post.text
+      }).subscribe({
+        next: (response) => {
+          console.log('Instagram post published:', response);
+        },
+        error: (error) => {
+          console.error('Error publishing to Instagram:', error);
+        }
+      });
+    } else {
+      console.warn('Instagram post has no image to publish');
+    }
+  }
+
+  private publishToWhatsApp(post: NetworkPost): void {
+    this.whatsAppService.publishWhatsApp(
+      {
+        messaging_product: "whatsapp",
+        to: "59172184204",
+        type: "text",
+        text: {
+          preview_url: false,
+          body: post.text
+        }
+      }
+    ).subscribe({
+      next: (response) => {
+        console.log('WhatsApp message sent:', response);
+      },
+      error: (error) => {
+        console.error('Error sending WhatsApp message:', error);
+      }
+    });
+  }
+
+  private publishToTikTok(post: NetworkPost): void {
+    if (post.localImageFile) {
+      this.tiktokService.publishVideo(post.localImageFile).subscribe({
+        next: (response) => {
+          console.log('TikTok video published:', response);
+          if (response.success) {
+            console.log(response.message);
+          }
+        },
+        error: (error) => {
+          console.error('Error publishing to TikTok:', error);
+        }
+      });
+    } else if (post.videoUrl) {
+      this.tiktokService.publishVideo(post.videoUrl).subscribe({
+        next: (response) => {
+          console.log('TikTok video published:', response);
+          if (response.success) {
+            console.log(response.message);
+          }
+        },
+        error: (error) => {
+          console.error('Error publishing to TikTok:', error);
+        }
+      });
+    } else {
+      console.warn('TikTok post has no video file to publish');
+    }
+  }
+
   /**
    * Añade un nuevo mensaje al historial de conversación.
    * @param sender - Emisor del mensaje ('user' o 'ai')
@@ -142,89 +315,11 @@ export class Gpt {
       sender,
       content,
       time: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
-      avatar: sender === 'user' 
-        ? 'https://lh3.googleusercontent.com/aida-public/AB6AXuBG0-rnfDL9KvPqLiOm5wriU1wDs1rmvwlPjtvf4h9Dx_3srAOllLv3fxvMDEL1DcffIzxpydAJUqsodMGARd9c0Ppjv0XOnmYRwXE4OoGB2yzmU_UZeaDkOyW_GGNtcFrZqjhpfGRS8xV_RoEThdZbxcQweVdVTpvlHJrYzo9PySnnMF8yhPdjY7tba9ve71YO9R69AEoY7WhzoGd1gcAh4JFHa330oSxlYFlloyPnrJD3AHeW5UtB_fvjc3F6ZzNJqfdpk99IDzKu'
-        : 'https://lh3.googleusercontent.com/aida-public/AB6AXuAdhvxftuCM4RaZTiXoLj1pqh7ALtTFyquVCfHf9iRbgjZ3E_GptnEWP_ZC8FfRfYf8ZG5Y57biMT6CvRqWTArTMmLUHKnbeYFjnKITdxEqFuSQw_SO0cMy48nbRHdhXLVGVi-cG3VSVBnJFtX36eBysrgnCsru_-PPEfKg7rTFMPb7-1bqCIWMqXOUK0L0HLNno1fwLfkPWTuSxbQ8SUtJOjkXQRkeNvFJTsgsvVkLbmNNpmpFp-4T40xcaLu9_FUXagcYR_mftybL',
+      avatar: sender === 'user' ? AVATAR_URLS.USER : AVATAR_URLS.AI,
       responseId
     };
-    
+
     this.messages.update(msgs => [...msgs, message]);
-  }
-
-  /**
-   * Solicita al servicio la generación de publicaciones para redes sociales basadas en el contexto.
-   * @param context - Contexto extraído de la conversación para generar publicaciones
-   */
-  private generateSocialPostsFromContext(context: string): void {
-    this.gptService.generatePosts(context).subscribe({
-      next: (response) => {
-        console.log('Response:', response);
-        const posts: NetworkPost[] = Object.values(response.networks);
-
-        this.socialPosts.set(posts);
-
-        console.log('Generated social posts:', this.socialPosts());
-        
-        // Buscar el post de Instagram y generar la imagen
-        const instagramPost = posts.find(post => post.platform.toLowerCase() === 'instagram');
-        if (instagramPost?.suggested_image_prompt) {
-          this.generateInstagramImage(instagramPost.suggested_image_prompt);
-        } else {
-          this.isLoading.set(false);
-        }
-      },
-      error: (error) => {
-        console.error('Error al generar publicaciones:', error);
-        this.clearSocialPosts();
-      }
-    });
-  }
-
-  /**
-   * Genera la imagen para Instagram basándose en el prompt sugerido.
-   * @param prompt - Prompt sugerido para generar la imagen
-   */
-  private generateInstagramImage(prompt: string): void {
-    // Marcar que Instagram está cargando la imagen
-    this.socialPosts.update(posts =>
-      posts.map(post =>
-        post.platform.toLowerCase() === 'instagram'
-          ? { ...post, isLoadingImage: true }
-          : post
-      )
-    );
-
-    // Llamar al servicio para generar la imagen
-    this.gptService.generateImage(prompt, '').subscribe({
-      next: (response) => {
-        console.log('Image generated:', response);
-        
-        // Actualizar el post de Instagram con la URL de la imagen
-        this.socialPosts.update(posts =>
-          posts.map(post =>
-            post.platform.toLowerCase() === 'instagram'
-              ? { ...post, imageUrl: response.url, isLoadingImage: false }
-              : post
-          )
-        );
-        
-        this.isLoading.set(false);
-      },
-      error: (error) => {
-        console.error('Error al generar imagen de Instagram:', error);
-        
-        // Marcar el error en el post de Instagram
-        this.socialPosts.update(posts =>
-          posts.map(post =>
-            post.platform.toLowerCase() === 'instagram'
-              ? { ...post, isLoadingImage: false }
-              : post
-          )
-        );
-        
-        this.isLoading.set(false);
-      }
-    });
   }
 
   /**
@@ -237,11 +332,33 @@ export class Gpt {
     this.lastResponseId = response.responseId;
 
     if (this.hasContext(response.context)) {
-      this.generateSocialPostsFromContext(response.context);
+      this.generateSocialContent(response.context);
       return;
     }
 
     this.clearSocialPosts();
+  }
+
+  /**
+   * Solicita al servicio la generación de contenido social (posts e imágenes).
+   * @param context - Contexto extraído de la conversación
+   */
+  private generateSocialContent(context: string): void {
+    this.gptService.generateSocialContent(context).subscribe({
+      next: (posts) => {
+        this.socialPosts.set(posts);
+
+        // Si ya no hay posts cargando imagen, terminamos el loading
+        const isLoadingImage = posts.some(p => p.isLoadingImage);
+        if (!isLoadingImage) {
+          this.isLoading.set(false);
+        }
+      },
+      error: (error) => {
+        console.error('Error al generar contenido social:', error);
+        this.clearSocialPosts();
+      }
+    });
   }
 
   /**
