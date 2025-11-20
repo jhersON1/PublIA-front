@@ -11,3 +11,10 @@ export interface TiktokResponse {
   message: string;
   publish_id: string;
 }
+
+export interface WhatsAppResponse {
+  ok: boolean;
+  platform: string;
+  id: string;
+  status: string;
+}

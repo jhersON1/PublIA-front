@@ -166,130 +166,137 @@ export class Gpt {
   handlePublishAll(): void {
     console.log('Publicar todas las publicaciones', this.socialPosts());
 
-    const facebookPost = this.socialPosts().find(p => p.platform.toLowerCase() === PLATFORMS.FACEBOOK);
-    if (facebookPost) {
-      this.facebookService.publishFacebook({ text: facebookPost.text }).subscribe({
-        next: (response) => {
-          console.log('Facebook post published:', response);
-          // Aquí podrías actualizar el estado del post o mostrar una notificación
-        },
-        error: (error) => {
-          console.error('Error publishing to Facebook:', error);
-        }
-      });
-    }
-
-    const linkedInPost = this.socialPosts().find(p => p.platform.toLowerCase() === PLATFORMS.LINKEDIN);
-    if (linkedInPost) {
-      this.linkedInService.publishLinkedIn({
-        text: linkedInPost.text,
-        articleUrl: 'https://blog.linkedin.com/',
-        articleTitle: 'Official LinkedIn Blog',
-        articleDescription: 'Your source for insights and information about LinkedIn.'
-      }).subscribe({
-        next: (response) => {
-          console.log('LinkedIn post published:', response);
-        },
-        error: (error) => {
-          console.error('Error publishing to LinkedIn:', error);
-        }
-      });
-    }
-
-    // Instagram: upload to Cloudinary first, then publish
-    const instagramPost = this.socialPosts().find(p => p.platform.toLowerCase() === PLATFORMS.INSTAGRAM);
-    if (instagramPost) {
-      // Check if there's a local image file to upload
-      if (instagramPost.localImageFile) {
-        // Upload to Cloudinary first
-        this.cloudinaryService.uploadFile(instagramPost.localImageFile).subscribe({
-          next: (cloudinaryResponse) => {
-            // Use secure_url from Cloudinary response
-            this.instagramService.publishInstagram({
-              imageUrl: cloudinaryResponse.secure_url,
-              caption: instagramPost.text
-            }).subscribe({
-              next: (response) => {
-                console.log('Instagram post published:', response);
-              },
-              error: (error) => {
-                console.error('Error publishing to Instagram:', error);
-              }
-            });
-          },
-          error: (error) => {
-            console.error('Error uploading image to Cloudinary:', error);
-          }
-        });
-      } else if (instagramPost.imageUrl) {
-        // If there's a generated imageUrl, use it directly
-        this.instagramService.publishInstagram({
-          imageUrl: instagramPost.imageUrl,
-          caption: instagramPost.text
-        }).subscribe({
-          next: (response) => {
-            console.log('Instagram post published:', response);
-          },
-          error: (error) => {
-            console.error('Error publishing to Instagram:', error);
-          }
-        });
-      } else {
-        console.warn('Instagram post has no image to publish');
+    this.socialPosts().forEach(post => {
+      switch (post.platform.toLowerCase()) {
+        case PLATFORMS.FACEBOOK:
+          this.publishToFacebook(post);
+          break;
+        case PLATFORMS.LINKEDIN:
+          this.publishToLinkedIn(post);
+          break;
+        case PLATFORMS.INSTAGRAM:
+          this.publishToInstagram(post);
+          break;
+        case PLATFORMS.WHATSAPP:
+          this.publishToWhatsApp(post);
+          break;
+        case PLATFORMS.TIKTOK:
+          this.publishToTikTok(post);
+          break;
       }
-    }
-
-    // WhatsApp: publish with static to and languageCode
-    const whatsappPost = this.socialPosts().find(p => p.platform.toLowerCase() === PLATFORMS.WHATSAPP);
-    if (whatsappPost) {
-      this.whatsAppService.publishWhatsApp({
-        to: '59172184204',
-        templateName: whatsappPost.text,
-        languageCode: 'en_US'
-      }).subscribe({
-        next: (response) => {
-          console.log('WhatsApp message sent:', response);
-        },
-        error: (error) => {
-          console.error('Error sending WhatsApp message:', error);
-        }
-      });
-    }
-
-    // TikTok: publish video
-    const tiktokPost = this.socialPosts().find(p => p.platform.toLowerCase() === PLATFORMS.TIKTOK);
-    if (tiktokPost) {
-      if (tiktokPost.localImageFile) {
-        this.tiktokService.publishVideo(tiktokPost.localImageFile).subscribe({
-          next: (response) => {
-            console.log('TikTok video published:', response);
-            if (response.success) {
-              console.log(response.message);
-            }
-          },
-          error: (error) => {
-            console.error('Error publishing to TikTok:', error);
-          }
-        });
-      } else if (tiktokPost.videoUrl) {
-        this.tiktokService.publishVideo(tiktokPost.videoUrl).subscribe({
-          next: (response) => {
-            console.log('TikTok video published:', response);
-            if (response.success) {
-              console.log(response.message);
-            }
-          },
-          error: (error) => {
-            console.error('Error publishing to TikTok:', error);
-          }
-        });
-      } else {
-        console.warn('TikTok post has no video file to publish');
-      }
-    }
+    });
   }
 
   // Private methods
+
+  private publishToFacebook(post: NetworkPost): void {
+    this.facebookService.publishFacebook({ text: post.text }).subscribe({
+      next: (response) => {
+        console.log('Facebook post published:', response);
+      },
+      error: (error) => {
+        console.error('Error publishing to Facebook:', error);
+      }
+    });
+  }
+
+  private publishToLinkedIn(post: NetworkPost): void {
+    this.linkedInService.publishLinkedIn({
+      text: post.text,
+      articleUrl: 'https://blog.linkedin.com/',
+      articleTitle: 'Official LinkedIn Blog',
+      articleDescription: 'Your source for insights and information about LinkedIn.'
+    }).subscribe({
+      next: (response) => {
+        console.log('LinkedIn post published:', response);
+      },
+      error: (error) => {
+        console.error('Error publishing to LinkedIn:', error);
+      }
+    });
+  }
+
+  private publishToInstagram(post: NetworkPost): void {
+    if (post.localImageFile) {
+      this.cloudinaryService.uploadFile(post.localImageFile).subscribe({
+        next: (cloudinaryResponse) => {
+          this.instagramService.publishInstagram({
+            imageUrl: cloudinaryResponse.secure_url,
+            caption: post.text
+          }).subscribe({
+            next: (response) => {
+              console.log('Instagram post published:', response);
+            },
+            error: (error) => {
+              console.error('Error publishing to Instagram:', error);
+            }
+          });
+        },
+        error: (error) => {
+          console.error('Error uploading image to Cloudinary:', error);
+        }
+      });
+    } else if (post.imageUrl) {
+      this.instagramService.publishInstagram({
+        imageUrl: post.imageUrl,
+        caption: post.text
+      }).subscribe({
+        next: (response) => {
+          console.log('Instagram post published:', response);
+        },
+        error: (error) => {
+          console.error('Error publishing to Instagram:', error);
+        }
+      });
+    } else {
+      console.warn('Instagram post has no image to publish');
+    }
+  }
+
+  private publishToWhatsApp(post: NetworkPost): void {
+    this.whatsAppService.publishWhatsApp({
+      to: '59172184204',
+      templateName: post.text,
+      languageCode: 'en_US'
+    }).subscribe({
+      next: (response) => {
+        console.log('WhatsApp message sent:', response);
+      },
+      error: (error) => {
+        console.error('Error sending WhatsApp message:', error);
+      }
+    });
+  }
+
+  private publishToTikTok(post: NetworkPost): void {
+    if (post.localImageFile) {
+      this.tiktokService.publishVideo(post.localImageFile).subscribe({
+        next: (response) => {
+          console.log('TikTok video published:', response);
+          if (response.success) {
+            console.log(response.message);
+          }
+        },
+        error: (error) => {
+          console.error('Error publishing to TikTok:', error);
+        }
+      });
+    } else if (post.videoUrl) {
+      this.tiktokService.publishVideo(post.videoUrl).subscribe({
+        next: (response) => {
+          console.log('TikTok video published:', response);
+          if (response.success) {
+            console.log(response.message);
+          }
+        },
+        error: (error) => {
+          console.error('Error publishing to TikTok:', error);
+        }
+      });
+    } else {
+      console.warn('TikTok post has no video file to publish');
+    }
+  }
 
   /**
    * Añade un nuevo mensaje al historial de conversación.
