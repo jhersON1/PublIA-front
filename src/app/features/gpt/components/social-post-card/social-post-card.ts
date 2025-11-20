@@ -62,7 +62,7 @@ export class SocialPostCard {
       if (generatedVideoUrl && !this.currentVideoUrl()) {
         this.currentVideoUrl.set(generatedVideoUrl);
       }
-    }, { allowSignalWrites: true });
+    });
 
     effect(() => {
       if (!this.isEditing()) {
