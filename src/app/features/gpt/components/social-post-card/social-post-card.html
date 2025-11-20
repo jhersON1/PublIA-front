@@ -36,18 +36,9 @@
 
     <!-- Mostrar la imagen o el spinner de carga -->
     <div class="mt-4">
-      @if (post().isLoadingImage) {
-      <!-- Spinner de carga -->
-      <div class="flex flex-col items-center justify-center p-8 bg-gray-50 dark:bg-gray-800 rounded-lg">
-        <div
-          class="w-12 h-12 border-4 border-gray-300 dark:border-gray-600 border-t-blue-500 rounded-full animate-spin">
-        </div>
-        <p class="mt-4 text-gray-600 dark:text-gray-400">Generando imagen...</p>
-      </div>
-      } @else if (post().imageUrl) {
-      <!-- Imagen generada -->
-      <img [src]="post().imageUrl" [alt]="suggestedPrompt()" class="w-full rounded-lg shadow-md">
-      }
+      <app-image-container [imageUrl]="currentImageUrl()" [altText]="suggestedPrompt()"
+        [isLoading]="post().isLoadingImage ?? false" (imageSelected)="onImageSelected($event)">
+      </app-image-container>
     </div>
     }
     } @else {

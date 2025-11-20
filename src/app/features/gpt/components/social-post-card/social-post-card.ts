@@ -1,8 +1,11 @@
 import { Component, ChangeDetectionStrategy, computed, output, input, signal, effect, viewChild, ElementRef, HostListener } from '@angular/core';
 import type { NetworkPost } from '../../interfaces/network-post.interface';
+import { ImageContainerComponent } from '../image-container/image-container.component';
 
 @Component({
   selector: 'app-social-post-card',
+  standalone: true,
+  imports: [ImageContainerComponent],
   templateUrl: './social-post-card.html',
   styleUrl: './social-post-card.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -15,6 +18,9 @@ export class SocialPostCard {
 
   isEditing = signal(false);
   editableContent = signal('');
+
+  // Signal local para manejar la imagen (generada o subida localmente)
+  currentImageUrl = signal<string | undefined>(undefined);
 
   editArea = viewChild<ElementRef<HTMLTextAreaElement>>('editArea');
 
@@ -40,6 +46,14 @@ export class SocialPostCard {
   private readonly DEFAULT_ICON = `${this.ICON_BASE_PATH}default.svg`;
 
   constructor() {
+    effect(() => {
+      // Sincronizar la imagen generada inicial si existe
+      const generatedUrl = this.post().imageUrl;
+      if (generatedUrl && !this.currentImageUrl()) {
+        this.currentImageUrl.set(generatedUrl);
+      }
+    }, { allowSignalWrites: true });
+
     effect(() => {
       if (!this.isEditing()) {
         // Para Instagram, editar el prompt sugerido; para otros, el texto
@@ -91,6 +105,11 @@ export class SocialPostCard {
     const { value } = event.target as HTMLTextAreaElement;
     this.editableContent.set(value);
     this.syncEditorHeight();
+  }
+
+  onImageSelected(file: File) {
+    const objectUrl = URL.createObjectURL(file);
+    this.currentImageUrl.set(objectUrl);
   }
 
   private normalize(name: string) {
