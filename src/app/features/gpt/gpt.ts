@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { Sidebar } from '../../shared/sidebar/sidebar';
 import { ChatContainer } from './components/chat-container/chat-container';
 import { ChatInput } from './components/chat-input/chat-input';
@@ -12,6 +12,8 @@ import { ChatStateService } from './services/facades/chat-state.service';
   styleUrl: './gpt.css',
 })
 export class Gpt {
+  isSidebarOpen = signal<boolean>(false);
+
   constructor(
     public chatStateService: ChatStateService,
     private socialPublishingService: SocialPublishingService
@@ -38,5 +40,13 @@ export class Gpt {
   handleVoiceInput(): void {
     console.log('Voice input clicked');
     // Aquí puedes agregar lógica para capturar input de voz
+  }
+
+  toggleSidebar(): void {
+    this.isSidebarOpen.update(v => !v);
+  }
+
+  closeSidebar(): void {
+    this.isSidebarOpen.set(false);
   }
 }

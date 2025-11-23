@@ -1,7 +1,33 @@
-<div class="relative flex h-screen w-full flex-col bg-background-light dark:bg-background-dark">
-  <div class="flex h-full grow">
-    <app-sidebar></app-sidebar>
-    <main class="flex flex-1 flex-col h-full">
+<div class="relative flex h-screen w-full flex-col bg-background-light dark:bg-background-dark overflow-hidden">
+
+  <!-- Mobile Header -->
+  <div
+    class="md:hidden flex items-center justify-between p-4 bg-white dark:bg-background-dark border-b border-gray-200 dark:border-gray-800 z-40 shrink-0">
+    <div class="flex items-center gap-3">
+      <button (click)="toggleSidebar()"
+        class="p-2 -ml-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-300">
+        <span class="material-symbols-outlined">menu</span>
+      </button>
+      <span class="font-bold text-gray-900 dark:text-white">Publ.ia</span>
+    </div>
+  </div>
+
+  <div class="flex h-full grow relative overflow-hidden">
+
+    <!-- Backdrop for mobile -->
+    @if (isSidebarOpen()) {
+    <div (click)="closeSidebar()" class="fixed inset-0 bg-black/50 z-40 md:hidden transition-opacity backdrop-blur-sm">
+    </div>
+    }
+
+    <!-- Sidebar Container -->
+    <div
+      class="fixed inset-y-0 left-0 z-50 w-64 transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 bg-background-light dark:bg-background-dark h-full border-r border-gray-200 dark:border-gray-800 shadow-xl md:shadow-none"
+      [class.translate-x-0]="isSidebarOpen()" [class.-translate-x-full]="!isSidebarOpen()">
+      <app-sidebar class="h-full block"></app-sidebar>
+    </div>
+
+    <main class="flex flex-1 flex-col h-full w-full relative overflow-hidden">
       <app-chat-container [messages]="chatStateService.messages()" [socialPosts]="chatStateService.socialPosts()"
         [showAIResponse]="chatStateService.showAIResponse()" [isLoading]="chatStateService.isLoading()"
         (copyToClipboard)="chatStateService.copyToClipboard($event)"
