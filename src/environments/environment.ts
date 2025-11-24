@@ -1,3 +1,3 @@
 export const environment = {
-    apiUrl: 'https://publ-ia-back.vercel.app'
+    apiUrl: 'http://localhost:3000'
 };

@@ -1,6 +1,8 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
+import { AuthService } from '../../services/auth';
+
 @Component({
   selector: 'app-login',
   imports: [ReactiveFormsModule, RouterLink],
@@ -9,6 +11,8 @@ import { RouterLink } from '@angular/router';
 })
 export class Login {
   private fb = inject(FormBuilder);
+  private authService = inject(AuthService);
+  private router = inject(Router);
 
   loginForm = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
@@ -30,11 +34,21 @@ export class Login {
   onSubmit() {
     if (this.loginForm.valid) {
       this.isLoading.set(true);
-      console.log('Login data:', this.loginForm.value);
-      // Simulate API call
-      setTimeout(() => {
-        this.isLoading.set(false);
-      }, 2000);
+      const { email, password } = this.loginForm.value;
+
+      this.authService.login(email!, password!)
+        .subscribe({
+          next: () => {
+            this.isLoading.set(false);
+            this.router.navigateByUrl('/gpt');
+          },
+          error: (message) => {
+            this.isLoading.set(false);
+            // Here you might want to show a toast or alert
+            console.error('Login error:', message);
+            alert('Login failed: ' + message);
+          }
+        });
     } else {
       this.loginForm.markAllAsTouched();
     }
