@@ -16,6 +16,7 @@ export class AuthService {
 
   public currentUser = computed(() => this._currentUser());
   public authStatus = computed(() => this._authStatus());
+  public userId = computed(() => this._currentUser()?._id ?? null);
 
   constructor() {
     this.checkAuthStatus().subscribe();

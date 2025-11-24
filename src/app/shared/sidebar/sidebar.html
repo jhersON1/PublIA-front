@@ -1,25 +1,65 @@
 <aside class="flex h-full w-64 flex-col justify-between bg-white/50 dark:bg-black/20 p-4 shrink-0">
   <div class="flex flex-col gap-4">
     <div class="flex gap-3 items-center">
-      <div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" 
-           style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDEe0QGap3eOzzxGofnzFiXdJPqjug5nJJZBB--M4MuC8eDrXCEnt4mcEnn69YCBV6FM0iLqJHyBBGtBdcbufwiArH6b3ZinEN7HjDu_9GXZjfBa7NE9kxPhWntRNkwOz3NNCIaGv5JtQNk9AuV2JmZovfTDNPJ8o2nsmkvf5cK7_GoWpeyFh7inFaKQAo9i69tzaaCcF6sOZf_p6F_JwrTC_mUdzSXjsaYtmzAIkji9jvlP0gQRhmBjGeG1LevscFQnoQhgkv526KF");'></div>
+      <div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10"
+        style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDEe0QGap3eOzzxGofnzFiXdJPqjug5nJJZBB--M4MuC8eDrXCEnt4mcEnn69YCBV6FM0iLqJHyBBGtBdcbufwiArH6b3ZinEN7HjDu_9GXZjfBa7NE9kxPhWntRNkwOz3NNCIaGv5JtQNk9AuV2JmZovfTDNPJ8o2nsmkvf5cK7_GoWpeyFh7inFaKQAo9i69tzaaCcF6sOZf_p6F_JwrTC_mUdzSXjsaYtmzAIkji9jvlP0gQRhmBjGeG1LevscFQnoQhgkv526KF");'>
+      </div>
       <div class="flex flex-col">
         <h1 class="text-gray-900 dark:text-white text-base font-bold leading-normal">AI Assistant</h1>
         <p class="text-gray-500 dark:text-[#9dabb8] text-sm font-normal leading-normal">GPT-4 Turbo</p>
       </div>
     </div>
-    <button 
-      (click)="onNewChat()"
+    <button (click)="onNewChat()"
       class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em]">
       <span class="truncate">New Chat</span>
     </button>
+
+    <!-- Chat List -->
     <div class="flex flex-col gap-1 mt-2">
-      <a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/20 dark:bg-primary/30" href="#">
+      @if (chatService.isLoadingChats()) {
+      <div class="text-center py-4">
+        <p class="text-gray-500 dark:text-gray-400 text-sm">Cargando chats...</p>
+      </div>
+      } @else if (chatService.chats().length === 0) {
+      <div class="text-center py-4">
+        <p class="text-gray-500 dark:text-gray-400 text-sm">No hay chats. ¡Crea uno nuevo!</p>
+      </div>
+      } @else {
+      @for (chat of chatService.chats(); track chat._id) {
+      <div (click)="onChatSelect(chat._id)" [class.bg-primary/20]="chatService.currentChatId() === chat._id"
+        [class.dark:bg-primary/30]="chatService.currentChatId() === chat._id"
+        class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer group">
         <span class="material-symbols-outlined text-gray-800 dark:text-white text-[20px]">chat_bubble</span>
-        <p class="text-gray-900 dark:text-white text-sm font-medium leading-normal truncate">Social Media Post</p>
-      </a>
+
+        @if (editingChatId === chat._id) {
+        <input #titleInput [value]="chat.title || 'Nuevo Chat'" (click)="$event.stopPropagation()"
+          (blur)="saveEdit(chat._id, titleInput.value)" (keydown.enter)="saveEdit(chat._id, titleInput.value)"
+          (keydown.escape)="cancelEditing()" autofocus
+          class="flex-1 bg-white dark:bg-black/20 text-gray-900 dark:text-white text-sm font-medium px-2 py-1 rounded border border-primary/50 outline-none min-w-0">
+        } @else {
+        <p (dblclick)="startEditing(chat._id, $event)"
+          class="text-gray-900 dark:text-white text-sm font-medium leading-normal truncate flex-1 select-none"
+          title="Doble click para renombrar">
+          {{ chat.title || 'Nuevo Chat' }}
+        </p>
+        }
+
+        <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button (click)="onRenameChat(chat._id, $event)" class="p-1 hover:bg-black/10 dark:hover:bg-white/10 rounded"
+            title="Renombrar">
+            <span class="material-symbols-outlined text-gray-600 dark:text-gray-400 text-[16px]">edit</span>
+          </button>
+          <button (click)="onDeleteChat(chat._id, $event)" class="p-1 hover:bg-black/10 dark:hover:bg-white/10 rounded"
+            title="Eliminar">
+            <span class="material-symbols-outlined text-gray-600 dark:text-gray-400 text-[16px]">delete</span>
+          </button>
+        </div>
+      </div>
+      }
+      }
     </div>
   </div>
+
   <div class="flex flex-col gap-1">
     <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5" href="#">
       <span class="material-symbols-outlined text-gray-600 dark:text-gray-400 text-[20px]">settings</span>

@@ -1,6 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { concat, map, Observable, of, switchMap, catchError, merge } from 'rxjs';
+import { concat, map, Observable, of, switchMap, catchError, merge, tap } from 'rxjs';
 import { NetworkPost } from '../interfaces/network-post.interface';
 import { PLATFORMS } from '../constants/gpt.constants';
 
@@ -46,13 +46,21 @@ export class GptService {
 
   private http: HttpClient = inject(HttpClient);
 
-  sendMessage(prompt: string, previousResponseId: string = ''): Observable<ChatResponse> {
-    const body: ChatRequest = {
+  sendMessage(prompt: string, previousResponseId: string = '', chatId?: string): Observable<ChatResponse> {
+    const body: any = {
       prompt,
       previousResponseId
     };
 
-    return this.http.post<ChatResponse>(this.CHAT_URL, body);
+    if (chatId) {
+      body.chatId = chatId;
+    }
+
+    console.log('🔵 [GptService] Sending message:', body);
+
+    return this.http.post<ChatResponse>(this.CHAT_URL, body).pipe(
+      tap(response => console.log('✅ [GptService] Message response:', response))
+    );
   }
 
   generatePosts(prompt: string): Observable<GeneratePostsResponse> {
@@ -60,24 +68,43 @@ export class GptService {
     return this.http.post<GeneratePostsResponse>(this.GENERATE_POSTS_URL, body);
   }
 
-  generateImage(prompt: string, previousResponseId: string = ''): Observable<GenerateImageResponse> {
-    const body: GenerateImageRequest = {
+  generateImage(prompt: string, previousResponseId: string = '', chatId?: string): Observable<GenerateImageResponse> {
+    const body: any = {
       prompt,
       previousResponseId
     };
-    return this.http.post<GenerateImageResponse>(this.GENERATE_IMAGE_URL, body);
+
+    if (chatId) {
+      body.chatId = chatId;
+    }
+
+    console.log('🔵 [GptService] Generating image:', body);
+
+    return this.http.post<GenerateImageResponse>(this.GENERATE_IMAGE_URL, body).pipe(
+      tap(response => console.log('✅ [GptService] Image generated:', response))
+    );
   }
 
-  startVideoGeneration(prompt: string): Observable<{ operationId: string }> {
-    return this.http.post<{ operationId: string }>(this.VIDEO_GENERATE_URL, { prompt });
+  startVideoGeneration(prompt: string, chatId?: string): Observable<{ operationId: string }> {
+    const body: any = { prompt };
+
+    if (chatId) {
+      body.chatId = chatId;
+    }
+
+    console.log('🔵 [GptService] Starting video generation:', body);
+
+    return this.http.post<{ operationId: string }>(this.VIDEO_GENERATE_URL, body).pipe(
+      tap(response => console.log('✅ [GptService] Video generation started:', response))
+    );
   }
 
   checkVideoStatus(operationId: string): Observable<{ status: string; url?: string }> {
     return this.http.get<{ status: string; url?: string }>(`${this.VIDEO_STATUS_URL}?id=${operationId}`);
   }
 
-  generateVideo(prompt: string): Observable<string> {
-    return this.startVideoGeneration(prompt).pipe(
+  generateVideo(prompt: string, chatId?: string): Observable<string> {
+    return this.startVideoGeneration(prompt, chatId).pipe(
       switchMap(response => {
         const startTime = Date.now();
         const TIMEOUT_MS = 2 * 60 * 1000; // 2 minutes
@@ -125,8 +152,11 @@ export class GptService {
    * Genera publicaciones para redes sociales y, si es necesario, la imagen para Instagram y video para TikTok.
    * Emite actualizaciones progresivas a medida que se completa la generación de medios.
    * @param context - Contexto para generar los posts
+   * @param chatId - Optional chat ID to associate media with
    */
-  generateSocialContent(context: string): Observable<NetworkPost[]> {
+  generateSocialContent(context: string, chatId?: string): Observable<NetworkPost[]> {
+    console.log('🔵 [GptService] Generating social content with chatId:', chatId);
+
     return this.generatePosts(context).pipe(
       switchMap(response => {
         console.log('📦 Generate Posts Response:', response);
@@ -160,10 +190,9 @@ export class GptService {
 
         // Image Generation Task
         if (instagramPost?.suggested_image_prompt) {
-          const imageTask = this.generateImage(instagramPost.suggested_image_prompt).pipe(
+          const imageTask = this.generateImage(instagramPost.suggested_image_prompt, '', chatId).pipe(
             map(imageResponse => {
               console.log('✅ Image generated successfully:', imageResponse.url);
-              // Create new array with updated Instagram post
               return posts.map(p =>
                 p.platform.toLowerCase() === PLATFORMS.INSTAGRAM
                   ? { ...p, imageUrl: imageResponse.url, isLoadingImage: false }
@@ -172,7 +201,6 @@ export class GptService {
             }),
             catchError(error => {
               console.error('❌ Error generating image:', error);
-              // Create new array with updated loading state
               return of(posts.map(p =>
                 p.platform.toLowerCase() === PLATFORMS.INSTAGRAM
                   ? { ...p, isLoadingImage: false }
@@ -185,10 +213,9 @@ export class GptService {
 
         // Video Generation Task
         if (tiktokPost?.suggested_video_prompt) {
-          const videoTask = this.generateVideo(tiktokPost.suggested_video_prompt).pipe(
+          const videoTask = this.generateVideo(tiktokPost.suggested_video_prompt, chatId).pipe(
             map(videoUrl => {
               console.log('✅ Video generated successfully:', videoUrl);
-              // Create new array with updated TikTok post
               return posts.map(p =>
                 p.platform.toLowerCase() === PLATFORMS.TIKTOK
                   ? { ...p, videoUrl: videoUrl, isLoadingVideo: false }
@@ -197,7 +224,6 @@ export class GptService {
             }),
             catchError(error => {
               console.error('❌ Error generating video:', error);
-              // Don't show error to user - they can upload local file
               return of(posts.map(p =>
                 p.platform.toLowerCase() === PLATFORMS.TIKTOK
                   ? { ...p, isLoadingVideo: false }
@@ -208,10 +234,9 @@ export class GptService {
           tasks.push(videoTask);
         }
 
-        // 3. Emit initial state, then merge updates from tasks
-        console.log('🔄 Emitting initial posts with loading states, then starting', tasks.length, 'media tasks');
+        // 3. Emit initial posts immediately, then merge media generation updates
         return concat(
-          of([...posts]),
+          of(posts),
           merge(...tasks)
         );
       })

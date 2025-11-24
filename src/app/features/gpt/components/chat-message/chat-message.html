@@ -9,7 +9,38 @@
         </p>
         <p class="text-gray-500 dark:text-[#9dabb8] text-sm font-normal leading-normal">{{ message().time }}</p>
       </div>
+
+      <!-- Text content -->
+      @if (!message().type || message().type === 'text') {
       <p class="text-gray-800 dark:text-gray-200 text-base font-normal leading-relaxed">{{ message().content }}</p>
+      }
+
+      <!-- Image content -->
+      @if (message().type === 'image' && message().mediaUrl) {
+      <div class="mt-2">
+        @if (message().content) {
+        <p class="text-gray-800 dark:text-gray-200 text-base font-normal leading-relaxed mb-2">{{ message().content }}
+        </p>
+        }
+        <img [src]="message().mediaUrl" [alt]="message().content || 'Generated image'"
+          class="rounded-lg max-w-full h-auto max-h-96 object-contain border border-gray-200 dark:border-gray-700"
+          loading="lazy" />
+      </div>
+      }
+
+      <!-- Video content -->
+      @if (message().type === 'video' && message().mediaUrl) {
+      <div class="mt-2">
+        @if (message().content) {
+        <p class="text-gray-800 dark:text-gray-200 text-base font-normal leading-relaxed mb-2">{{ message().content }}
+        </p>
+        }
+        <video [src]="message().mediaUrl" controls
+          class="rounded-lg max-w-full h-auto max-h-96 border border-gray-200 dark:border-gray-700">
+          Tu navegador no soporta el elemento de video.
+        </video>
+      </div>
+      }
     </div>
   </div>
 </div>

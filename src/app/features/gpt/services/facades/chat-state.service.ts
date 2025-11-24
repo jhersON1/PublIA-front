@@ -1,7 +1,8 @@
-import { Injectable, signal, effect, computed } from '@angular/core';
+import { Injectable, signal, effect, computed, inject } from '@angular/core';
 import { GptService, ChatResponse } from '../gpt.service';
 import { SidebarService } from '../../../../services/sidebar.service';
 import { ClipboardService } from '../../../../shared/services/clipboard.service';
+import { ChatService } from '../chat.service';
 import { Message } from '../../interfaces/message.interface';
 import { NetworkPost } from '../../interfaces/network-post.interface';
 import { AVATAR_URLS } from '../../constants/gpt.constants';
@@ -18,6 +19,9 @@ export class ChatStateService {
 
     // Private properties
     private lastResponseId: string = '';
+    private isCreatingChat: boolean = false;
+
+    private chatService = inject(ChatService);
 
     constructor(
         private gptService: GptService,
@@ -29,6 +33,26 @@ export class ChatStateService {
             const trigger = this.sidebarService.getNewChatTrigger()();
             if (trigger > 0) {
                 this.newChat();
+            }
+        });
+
+        // Effect to load messages when chat selection changes
+        effect(() => {
+            const chatId = this.chatService.currentChatId();
+            console.log('🔵 [ChatStateService] Current chat changed:', chatId);
+
+            if (chatId) {
+                if (this.isCreatingChat) {
+                    console.log('🔵 [ChatStateService] Chat creation in progress, preserving local messages');
+                    this.isCreatingChat = false;
+                    return;
+                }
+                console.log('🔵 [ChatStateService] Loading messages for chat:', chatId);
+                this.loadChatMessages(chatId);
+            } else {
+                console.log('🔵 [ChatStateService] No chat selected, clearing messages');
+                this.messages.set([]);
+                this.socialPosts.set([]);
             }
         });
     }
@@ -84,17 +108,49 @@ export class ChatStateService {
         this.addMessage('user', prompt);
         this.isLoading.set(true);
 
-        this.gptService.sendMessage(prompt, this.lastResponseId).subscribe({
+        console.log('🔵 [ChatStateService] Sending message');
+        console.log('🔵 [ChatStateService] Current chatId:', this.chatService.currentChatId());
+
+        // Check if we need to create a chat first
+        const currentChatId = this.chatService.currentChatId();
+
+        if (!currentChatId) {
+            console.log('🔵 [ChatStateService] No active chat, creating new chat first');
+            this.isCreatingChat = true;
+            this.chatService.createChat().subscribe({
+                next: (newChat) => {
+                    console.log('✅ [ChatStateService] Chat created, now sending message with chatId:', newChat._id);
+                    this.sendMessageToAPI(prompt, newChat._id);
+                },
+                error: (error) => {
+                    console.error('❌ [ChatStateService] Error creating chat:', error);
+                    this.isCreatingChat = false;
+                    this.handleChatError(error);
+                }
+            });
+        } else {
+            console.log('✅ [ChatStateService] Using existing chatId:', currentChatId);
+            this.sendMessageToAPI(prompt, currentChatId);
+        }
+    }
+
+    private sendMessageToAPI(prompt: string, chatId: string): void {
+        console.log('🔵 [ChatStateService] Calling API with:', { prompt, chatId });
+
+        this.gptService.sendMessage(prompt, this.lastResponseId, chatId).subscribe({
             next: (response) => this.handleChatSuccess(response),
             error: (error) => this.handleChatError(error),
         });
     }
 
     newChat(): void {
+        console.log('🔵 [ChatStateService] New chat triggered - clearing state only');
         this.messages.set([]);
         this.socialPosts.set([]);
         this.lastResponseId = '';
         this.showAIResponse.set(false);
+        this.chatService.selectChat(null as any); // Set currentChatId to null
+        console.log('✅ [ChatStateService] State cleared, currentChatId now null');
     }
 
     // Private methods
@@ -125,7 +181,10 @@ export class ChatStateService {
     }
 
     private generateSocialContent(context: string): void {
-        this.gptService.generateSocialContent(context).subscribe({
+        const currentChatId = this.chatService.currentChatId();
+        console.log('🔵 [ChatStateService] Generating social content with chatId:', currentChatId);
+
+        this.gptService.generateSocialContent(context, currentChatId || undefined).subscribe({
             next: (posts) => {
                 this.socialPosts.set(posts);
 
@@ -150,6 +209,33 @@ export class ChatStateService {
 
     private hasContext(context?: string | null): boolean {
         return Boolean(context?.trim());
+    }
+
+    private loadChatMessages(chatId: string): void {
+        console.log('🔵 [ChatStateService] Loading messages for chatId:', chatId);
+
+        this.chatService.loadChatMessages(chatId).subscribe({
+            next: (chatMessages) => {
+                console.log('✅ [ChatStateService] Loaded chat messages:', chatMessages);
+
+                // Convert ChatMessage[] to Message[]
+                const messages: Message[] = chatMessages.map(msg => ({
+                    sender: msg.sender,
+                    content: msg.content,
+                    time: new Date(msg.createdAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+                    avatar: msg.sender === 'user' ? AVATAR_URLS.USER : AVATAR_URLS.AI,
+                    type: msg.type,
+                    mediaUrl: msg.mediaUrl || undefined
+                }));
+
+                this.messages.set(messages);
+                console.log('✅ [ChatStateService] Messages converted and set:', messages);
+            },
+            error: (error) => {
+                console.error('❌ [ChatStateService] Error loading chat messages:', error);
+                this.messages.set([]);
+            }
+        });
     }
 
     private clearSocialPosts(): void {
