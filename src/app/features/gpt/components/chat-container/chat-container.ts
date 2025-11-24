@@ -21,6 +21,7 @@ export class ChatContainer {
   regenerateResponse = output<void>();
   updatePost = output<{ platform: string; text: string }>();
   updateImageFile = output<{ platform: string; file: File }>();
+  updateWhatsAppPublishType = output<{ platform: string; type: 'number' | 'status' }>();
   publishAll = output<void>();
 
   onCopyToClipboard(content: string): void {
@@ -37,6 +38,10 @@ export class ChatContainer {
 
   onUpdateImageFile(update: { platform: string; file: File }): void {
     this.updateImageFile.emit(update);
+  }
+
+  onUpdateWhatsAppPublishType(update: { platform: string; type: 'number' | 'status' }): void {
+    this.updateWhatsAppPublishType.emit(update);
   }
 
   onPublishAll(): void {

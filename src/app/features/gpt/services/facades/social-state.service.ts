@@ -57,6 +57,16 @@ export class SocialStateService {
         );
     }
 
+    updateWhatsAppPublishType(update: { platform: string; type: 'number' | 'status' }): void {
+        this.socialPosts.update(posts =>
+            posts.map(post =>
+                post.platform === update.platform
+                    ? { ...post, whatsappPublishType: update.type }
+                    : post
+            )
+        );
+    }
+
     clearSocialPosts(): void {
         this.socialPosts.set([]);
         this.isLoading.set(false);

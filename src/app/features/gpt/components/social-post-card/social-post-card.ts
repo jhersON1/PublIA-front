@@ -16,6 +16,7 @@ export class SocialPostCard {
   copyContent = output<string>();
   updateContent = output<{ platform: string; text: string }>();
   updateImageFile = output<{ platform: string; file: File }>();
+  updateWhatsAppPublishType = output<{ platform: string; type: 'number' | 'status' }>();
 
   isEditing = signal(false);
   editableContent = signal('');
@@ -31,6 +32,7 @@ export class SocialPostCard {
 
   isInstagram = computed(() => this.platformLabel().toLowerCase() === 'instagram');
   isTikTok = computed(() => this.platformLabel().toLowerCase() === 'tiktok');
+  isWhatsApp = computed(() => this.platformLabel().toLowerCase() === 'whatsapp');
 
   iconUrl = computed(() => {
     const file = this.normalize(this.platformLabel());
@@ -121,6 +123,10 @@ export class SocialPostCard {
     const objectUrl = URL.createObjectURL(file);
     this.currentVideoUrl.set(objectUrl);
     this.updateImageFile.emit({ platform: this.post().platform, file });
+  }
+
+  onWhatsAppPublishTypeChange(type: 'number' | 'status') {
+    this.updateWhatsAppPublishType.emit({ platform: this.post().platform, type });
   }
 
   private normalize(name: string) {

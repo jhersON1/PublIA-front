@@ -50,7 +50,8 @@
                 <div class="space-y-4">
                     @for (post of socialPosts(); track trackByPlatform($index, post)) {
                     <app-social-post-card [post]="post" (copyContent)="onCopyToClipboard($event)"
-                        (updateContent)="onUpdatePost($event)" (updateImageFile)="onUpdateImageFile($event)">
+                        (updateContent)="onUpdatePost($event)" (updateImageFile)="onUpdateImageFile($event)"
+                        (updateWhatsAppPublishType)="onUpdateWhatsAppPublishType($event)">
                     </app-social-post-card>
                     }
                 </div>

@@ -11,5 +11,6 @@ export interface NetworkPost {
   localImageFile?: File;
   videoUrl?: string;
   isLoadingVideo?: boolean;
+  whatsappPublishType?: 'number' | 'status'; // 'number' = enviar a número, 'status' = subir a estado
   [key: string]: unknown;
 }
