@@ -1,6 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
+import { AuthService } from '../../services/auth';
 
 @Component({
   selector: 'app-register',
@@ -10,6 +11,8 @@ import { RouterLink } from '@angular/router';
 })
 export class Register {
   private fb = inject(FormBuilder);
+  private authService = inject(AuthService);
+  private router = inject(Router);
 
   registerForm = this.fb.group({
     name: ['', [Validators.required]],
@@ -33,11 +36,20 @@ export class Register {
   onSubmit() {
     if (this.registerForm.valid) {
       this.isLoading.set(true);
-      console.log('Register data:', this.registerForm.value);
-      // Simulate API call
-      setTimeout(() => {
-        this.isLoading.set(false);
-      }, 2000);
+      const { name, lastname, email, password } = this.registerForm.value;
+
+      this.authService.register(name!, lastname!, email!, password!)
+        .subscribe({
+          next: () => {
+            this.isLoading.set(false);
+            this.router.navigateByUrl('/auth/login');
+          },
+          error: (message) => {
+            this.isLoading.set(false);
+            console.error('Register error:', message);
+            alert('Registration failed: ' + message);
+          }
+        });
     } else {
       this.registerForm.markAllAsTouched();
     }
