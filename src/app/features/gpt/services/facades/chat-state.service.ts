@@ -155,7 +155,7 @@ export class ChatStateService {
         this.isLoading.set(false);
 
         if (this.hasContext(response.context)) {
-            this.socialStateService.generateSocialContent(response.context);
+            this.socialStateService.generateSocialContent(response.context, this.chatService.currentChatId() || undefined);
             return;
         }
 
