@@ -1,0 +1,27 @@
+<div class="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
+    <!-- Background decoration -->
+    <div class="absolute inset-0 overflow-hidden pointer-events-none">
+        <div class="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] rounded-full bg-indigo-500/10 blur-3xl"></div>
+        <div class="absolute top-[20%] -right-[10%] w-[30%] h-[30%] rounded-full bg-purple-500/10 blur-3xl"></div>
+        <div class="absolute -bottom-[10%] left-[20%] w-[30%] h-[30%] rounded-full bg-pink-500/10 blur-3xl"></div>
+    </div>
+
+    <div class="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
+        <h2 class="mt-6 text-center text-3xl font-extrabold text-slate-900 tracking-tight">
+            Publ-IA
+        </h2>
+        <p class="mt-2 text-center text-sm text-slate-600">
+            Your AI-powered social media assistant
+        </p>
+    </div>
+
+    <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10">
+        <div class="bg-white py-8 px-4 shadow-xl shadow-slate-200/50 sm:rounded-2xl sm:px-10 border border-slate-100">
+            <router-outlet></router-outlet>
+        </div>
+    </div>
+
+    <div class="mt-8 text-center text-xs text-slate-400 relative z-10">
+        &copy; {{ year }} Publ-IA. All rights reserved.
+    </div>
+</div>
