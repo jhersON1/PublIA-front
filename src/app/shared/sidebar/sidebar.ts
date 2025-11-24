@@ -1,11 +1,10 @@
 import { Component, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { ChatService } from '../../features/gpt/services/chat.service';
 import { ChatListComponent } from './chat-list/chat-list.component';
 
 @Component({
   selector: 'app-sidebar',
-  imports: [CommonModule, ChatListComponent],
+  imports: [ChatListComponent],
   templateUrl: './sidebar.html',
   styleUrl: './sidebar.css',
 })

@@ -1,11 +1,8 @@
 import { Component, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { ChatService } from '../../../features/gpt/services/chat.service';
 
 @Component({
     selector: 'app-chat-list',
-    standalone: true,
-    imports: [CommonModule],
     templateUrl: './chat-list.component.html',
     styleUrl: './chat-list.component.css'
 })

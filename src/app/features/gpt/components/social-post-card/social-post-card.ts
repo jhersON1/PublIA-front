@@ -5,7 +5,6 @@ import { VideoContainerComponent } from '../video-container/video-container.comp
 
 @Component({
   selector: 'app-social-post-card',
-  standalone: true,
   imports: [ImageContainerComponent, VideoContainerComponent],
   templateUrl: './social-post-card.html',
   styleUrl: './social-post-card.css',

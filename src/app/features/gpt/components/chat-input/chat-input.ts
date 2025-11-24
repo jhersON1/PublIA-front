@@ -1,10 +1,9 @@
 import { Component, output, model, input } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-chat-input',
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   templateUrl: './chat-input.html',
   styleUrl: './chat-input.css',
 })
