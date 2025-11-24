@@ -28,22 +28,6 @@ export class Gpt {
     this.socialPublishingService.publishAll(this.socialStateService.socialPosts());
   }
 
-  /**
-   * Maneja la acción de adjuntar archivos (placeholder para futura implementación).
-   */
-  handleAttachFile(): void {
-    console.log('Attach file clicked');
-    // Aquí puedes agregar lógica para abrir un file picker
-  }
-
-  /**
-   * Maneja la entrada de voz (placeholder para futura implementación).
-   */
-  handleVoiceInput(): void {
-    console.log('Voice input clicked');
-    // Aquí puedes agregar lógica para capturar input de voz
-  }
-
   toggleSidebar(): void {
     this.isSidebarOpen.update(v => !v);
   }

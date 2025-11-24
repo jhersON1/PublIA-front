@@ -13,8 +13,7 @@ export class ChatInput {
   messageInput = model<string>('');
 
   sendMessage = output<string>();
-  attachFile = output<void>();
-  voiceInput = output<void>();
+
 
   handleEnter(event: KeyboardEvent): void {
     event.preventDefault();
@@ -27,16 +26,5 @@ export class ChatInput {
       this.messageInput.set('');
     }
   }
-
-  onAttachFile(): void {
-    if (!this.isDisabled()) {
-      this.attachFile.emit();
-    }
-  }
-
-  onVoiceInput(): void {
-    if (!this.isDisabled()) {
-      this.voiceInput.emit();
-    }
-  }
+  
 }

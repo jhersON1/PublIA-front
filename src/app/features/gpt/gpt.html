@@ -37,8 +37,7 @@
         (updateImageFile)="socialStateService.updateImageFile($event)" (publishAll)="handlePublishAll()">
       </app-chat-container>
       <app-chat-input [isDisabled]="chatStateService.isLoading() || socialStateService.isLoading()"
-        (sendMessage)="chatStateService.sendMessage($event)" (attachFile)="handleAttachFile()"
-        (voiceInput)="handleVoiceInput()">
+        (sendMessage)="chatStateService.sendMessage($event)">
       </app-chat-input>
     </main>
   </div>

@@ -10,17 +10,9 @@
             placeholder="Send a message..." rows="1"></textarea>
         </div>
       </label>
+    
       <div class="flex items-center gap-1 self-end pb-1.5 shrink-0">
-        <button (click)="onAttachFile()" [disabled]="isDisabled()"
-          class="flex items-center justify-center p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 disabled:cursor-not-allowed transition-colors">
-          <span
-            class="material-symbols-outlined text-gray-500 dark:text-[#9dabb8] text-[20px] md:text-[22px]">attach_file</span>
-        </button>
-        <button (click)="onVoiceInput()" [disabled]="isDisabled()"
-          class="flex items-center justify-center p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 disabled:cursor-not-allowed transition-colors">
-          <span
-            class="material-symbols-outlined text-gray-500 dark:text-[#9dabb8] text-[20px] md:text-[22px]">mic</span>
-        </button>
+        
         <button (click)="onSend()" [disabled]="isDisabled()"
           class="flex items-center justify-center overflow-hidden rounded-lg size-8 md:size-9 bg-primary hover:bg-primary/90 text-white cursor-pointer ml-1 md:ml-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm">
           <span class="material-symbols-outlined text-[18px] md:text-[20px]">send</span>
