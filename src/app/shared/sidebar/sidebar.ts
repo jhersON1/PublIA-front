@@ -1,25 +1,26 @@
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { SidebarService } from '../../services/sidebar.service';
+import { Component, inject } from '@angular/core';
+import { ChatService } from '../../features/gpt/services/chat.service';
+import { ChatListComponent } from './chat-list/chat-list.component';
+import { AuthService } from '../../auth/services/auth';
 
 @Component({
   selector: 'app-sidebar',
-  imports: [CommonModule],
+  imports: [ChatListComponent],
   templateUrl: './sidebar.html',
   styleUrl: './sidebar.css',
 })
 export class Sidebar {
-  chatHistory = [
-    { id: 1, title: 'Social Media Post', active: true },
-  ];
-
-  constructor(private sidebarService: SidebarService) {}
+  chatService = inject(ChatService);
+  authService = inject(AuthService);
 
   onNewChat() {
-    this.sidebarService.triggerNewChat();
+    console.log('🔵 [Sidebar] New Chat button clicked - setting currentChatId to null');
+    this.chatService.selectChat(null as any);
+    // Clear the UI state through SidebarService
+    // The actual chat will be created when the user sends the first message
   }
 
-  onChatSelect(chatId: number) {
-    this.chatHistory.forEach(chat => chat.active = chat.id === chatId);
+  onLogout() {
+    this.authService.logout();
   }
 }

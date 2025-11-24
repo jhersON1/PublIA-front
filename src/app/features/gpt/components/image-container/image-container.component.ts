@@ -1,10 +1,8 @@
 import { Component, ChangeDetectionStrategy, input, output, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
 
 @Component({
     selector: 'app-image-container',
-    standalone: true,
-    imports: [CommonModule],
+    imports: [],
     templateUrl: './image-container.component.html',
     changeDetection: ChangeDetectionStrategy.OnPush,
 })

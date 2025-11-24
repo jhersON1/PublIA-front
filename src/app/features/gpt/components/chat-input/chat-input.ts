@@ -1,10 +1,9 @@
 import { Component, output, model, input } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-chat-input',
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   templateUrl: './chat-input.html',
   styleUrl: './chat-input.css',
 })
@@ -14,8 +13,7 @@ export class ChatInput {
   messageInput = model<string>('');
 
   sendMessage = output<string>();
-  attachFile = output<void>();
-  voiceInput = output<void>();
+
 
   handleEnter(event: KeyboardEvent): void {
     event.preventDefault();
@@ -28,16 +26,5 @@ export class ChatInput {
       this.messageInput.set('');
     }
   }
-
-  onAttachFile(): void {
-    if (!this.isDisabled()) {
-      this.attachFile.emit();
-    }
-  }
-
-  onVoiceInput(): void {
-    if (!this.isDisabled()) {
-      this.voiceInput.emit();
-    }
-  }
+  
 }

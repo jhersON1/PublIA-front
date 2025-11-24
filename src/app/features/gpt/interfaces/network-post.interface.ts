@@ -4,6 +4,7 @@ export interface NetworkPost {
   hashtags?: string[];
   character_count?: number;
   suggested_image_prompt?: string;
+  suggested_video_prompt?: string;
   tone?: string;
   imageUrl?: string;
   isLoadingImage?: boolean;

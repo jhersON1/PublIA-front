@@ -4,4 +4,6 @@ export interface Message {
   time: string;
   avatar: string;
   responseId?: string;
+  type?: 'text' | 'image' | 'video';
+  mediaUrl?: string;
 }
