@@ -28,14 +28,17 @@
     </div>
 
     <main class="flex flex-1 flex-col h-full w-full relative overflow-hidden">
-      <app-chat-container [messages]="chatStateService.messages()" [socialPosts]="chatStateService.socialPosts()"
-        [showAIResponse]="chatStateService.showAIResponse()" [isLoading]="chatStateService.isLoading()"
+      <app-chat-container [messages]="chatStateService.messages()" [socialPosts]="socialStateService.socialPosts()"
+        [showAIResponse]="chatStateService.showAIResponse()"
+        [isLoading]="chatStateService.isLoading() || socialStateService.isLoading()"
         (copyToClipboard)="chatStateService.copyToClipboard($event)"
-        (regenerateResponse)="chatStateService.regenerateResponse()" (updatePost)="chatStateService.updatePost($event)"
-        (updateImageFile)="chatStateService.updateImageFile($event)" (publishAll)="handlePublishAll()">
+        (regenerateResponse)="chatStateService.regenerateResponse()"
+        (updatePost)="socialStateService.updatePost($event)"
+        (updateImageFile)="socialStateService.updateImageFile($event)" (publishAll)="handlePublishAll()">
       </app-chat-container>
-      <app-chat-input [isDisabled]="chatStateService.isLoading()" (sendMessage)="chatStateService.sendMessage($event)"
-        (attachFile)="handleAttachFile()" (voiceInput)="handleVoiceInput()">
+      <app-chat-input [isDisabled]="chatStateService.isLoading() || socialStateService.isLoading()"
+        (sendMessage)="chatStateService.sendMessage($event)" (attachFile)="handleAttachFile()"
+        (voiceInput)="handleVoiceInput()">
       </app-chat-input>
     </main>
   </div>

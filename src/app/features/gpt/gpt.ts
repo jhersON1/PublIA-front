@@ -4,6 +4,7 @@ import { ChatContainer } from './components/chat-container/chat-container';
 import { ChatInput } from './components/chat-input/chat-input';
 import { SocialPublishingService } from './services/facades/social-publishing.service';
 import { ChatStateService } from './services/facades/chat-state.service';
+import { SocialStateService } from './services/facades/social-state.service';
 
 @Component({
   selector: 'app-gpt',
@@ -16,6 +17,7 @@ export class Gpt {
 
   constructor(
     public chatStateService: ChatStateService,
+    public socialStateService: SocialStateService,
     private socialPublishingService: SocialPublishingService
   ) { }
 
@@ -23,7 +25,7 @@ export class Gpt {
    * Maneja la publicación de todas las publicaciones sociales.
    */
   handlePublishAll(): void {
-    this.socialPublishingService.publishAll(this.chatStateService.socialPosts());
+    this.socialPublishingService.publishAll(this.socialStateService.socialPosts());
   }
 
   /**

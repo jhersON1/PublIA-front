@@ -1,19 +1,19 @@
-import { Injectable, signal, effect, computed, inject } from '@angular/core';
+import { Injectable, signal, effect, inject } from '@angular/core';
 import { GptService, ChatResponse } from '../gpt.service';
 import { SidebarService } from '../../../../services/sidebar.service';
 import { ClipboardService } from '../../../../shared/services/clipboard.service';
 import { ChatService } from '../chat.service';
 import { Message } from '../../interfaces/message.interface';
-import { NetworkPost } from '../../interfaces/network-post.interface';
 import { AVATAR_URLS } from '../../constants/gpt.constants';
+import { SocialStateService } from './social-state.service';
 
 @Injectable({
     providedIn: 'root'
 })
 export class ChatStateService {
-    // Public signals
+
     messages = signal<Message[]>([]);
-    socialPosts = signal<NetworkPost[]>([]);
+
     showAIResponse = signal<boolean>(false);
     isLoading = signal<boolean>(false);
 
@@ -22,6 +22,7 @@ export class ChatStateService {
     private isCreatingChat: boolean = false;
 
     private chatService = inject(ChatService);
+    private socialStateService = inject(SocialStateService);
 
     constructor(
         private gptService: GptService,
@@ -52,7 +53,7 @@ export class ChatStateService {
             } else {
                 console.log('🔵 [ChatStateService] No chat selected, clearing messages');
                 this.messages.set([]);
-                this.socialPosts.set([]);
+                this.socialStateService.clearSocialPosts();
             }
         });
     }
@@ -61,26 +62,6 @@ export class ChatStateService {
 
     copyToClipboard(content: string): void {
         this.clipboardService.copyToClipboard(content);
-    }
-
-    updatePost(update: { platform: string; text: string }): void {
-        this.socialPosts.update(posts =>
-            posts.map(post =>
-                post.platform === update.platform
-                    ? { ...post, text: update.text }
-                    : post
-            )
-        );
-    }
-
-    updateImageFile(update: { platform: string; file: File }): void {
-        this.socialPosts.update(posts =>
-            posts.map(post =>
-                post.platform === update.platform
-                    ? { ...post, localImageFile: update.file }
-                    : post
-            )
-        );
     }
 
     regenerateResponse(): void {
@@ -146,7 +127,7 @@ export class ChatStateService {
     newChat(): void {
         console.log('🔵 [ChatStateService] New chat triggered - clearing state only');
         this.messages.set([]);
-        this.socialPosts.set([]);
+        this.socialStateService.clearSocialPosts();
         this.lastResponseId = '';
         this.showAIResponse.set(false);
         this.chatService.selectChat(null as any); // Set currentChatId to null
@@ -171,34 +152,14 @@ export class ChatStateService {
         this.addMessage('ai', response.message, response.responseId);
         this.showAIResponse.set(true);
         this.lastResponseId = response.responseId;
+        this.isLoading.set(false);
 
         if (this.hasContext(response.context)) {
-            this.generateSocialContent(response.context);
+            this.socialStateService.generateSocialContent(response.context);
             return;
         }
 
-        this.clearSocialPosts();
-    }
-
-    private generateSocialContent(context: string): void {
-        const currentChatId = this.chatService.currentChatId();
-        console.log('🔵 [ChatStateService] Generating social content with chatId:', currentChatId);
-
-        this.gptService.generateSocialContent(context, currentChatId || undefined).subscribe({
-            next: (posts) => {
-                this.socialPosts.set(posts);
-
-                // If no posts are loading images, finish loading
-                const isLoadingImage = posts.some(p => p.isLoadingImage);
-                if (!isLoadingImage) {
-                    this.isLoading.set(false);
-                }
-            },
-            error: (error) => {
-                console.error('Error al generar contenido social:', error);
-                this.clearSocialPosts();
-            }
-        });
+        this.socialStateService.clearSocialPosts();
     }
 
     private handleChatError(error: unknown): void {
@@ -236,11 +197,6 @@ export class ChatStateService {
                 this.messages.set([]);
             }
         });
-    }
-
-    private clearSocialPosts(): void {
-        this.socialPosts.set([]);
-        this.isLoading.set(false);
     }
 
     private getLastMessage(): Message | undefined {
