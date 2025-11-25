@@ -13,7 +13,6 @@ export class ClipboardService {
     async copyToClipboard(text: string): Promise<void> {
         try {
             await navigator.clipboard.writeText(text);
-            console.log('Texto copiado al portapapeles');
         } catch (err) {
             console.error('Error al copiar al portapapeles:', err);
             throw err;

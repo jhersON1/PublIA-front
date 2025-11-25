@@ -14,7 +14,6 @@ export class Sidebar {
   authService = inject(AuthService);
 
   onNewChat() {
-    console.log('🔵 [Sidebar] New Chat button clicked - setting currentChatId to null');
     this.chatService.selectChat(null as any);
     // Clear the UI state through SidebarService
     // The actual chat will be created when the user sends the first message

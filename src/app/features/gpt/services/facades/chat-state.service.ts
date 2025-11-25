@@ -41,18 +41,14 @@ export class ChatStateService {
         // Effect to load messages when chat selection changes
         effect(() => {
             const chatId = this.chatService.currentChatId();
-            console.log('🔵 [ChatStateService] Current chat changed:', chatId);
 
             if (chatId) {
                 if (this.isCreatingChat) {
-                    console.log('🔵 [ChatStateService] Chat creation in progress, preserving local messages');
                     this.isCreatingChat = false;
                     return;
                 }
-                console.log('🔵 [ChatStateService] Loading messages for chat:', chatId);
                 this.loadChatMessages(chatId);
             } else {
-                console.log('🔵 [ChatStateService] No chat selected, clearing messages');
                 this.messages.set([]);
                 this.socialStateService.clearSocialPosts();
             }
@@ -90,18 +86,13 @@ export class ChatStateService {
         this.addMessage('user', prompt);
         this.isLoading.set(true);
 
-        console.log('🔵 [ChatStateService] Sending message');
-        console.log('🔵 [ChatStateService] Current chatId:', this.chatService.currentChatId());
-
         // Check if we need to create a chat first
         const currentChatId = this.chatService.currentChatId();
 
         if (!currentChatId) {
-            console.log('🔵 [ChatStateService] No active chat, creating new chat first');
             this.isCreatingChat = true;
             this.chatService.createChat().subscribe({
                 next: (newChat) => {
-                    console.log('✅ [ChatStateService] Chat created, now sending message with chatId:', newChat._id);
                     this.sendMessageToAPI(prompt, newChat._id);
                 },
                 error: (error) => {
@@ -111,13 +102,11 @@ export class ChatStateService {
                 }
             });
         } else {
-            console.log('✅ [ChatStateService] Using existing chatId:', currentChatId);
             this.sendMessageToAPI(prompt, currentChatId);
         }
     }
 
     private sendMessageToAPI(prompt: string, chatId: string): void {
-        console.log('🔵 [ChatStateService] Calling API with:', { prompt, chatId });
 
         this.gptService.sendMessage(prompt, this.lastResponseId, chatId).subscribe({
             next: (response) => this.handleChatSuccess(response),
@@ -126,13 +115,11 @@ export class ChatStateService {
     }
 
     newChat(): void {
-        console.log('🔵 [ChatStateService] New chat triggered - clearing state only');
         this.messages.set([]);
         this.socialStateService.clearSocialPosts();
         this.lastResponseId = '';
         this.showAIResponse.set(false);
         this.chatService.selectChat(null as any); // Set currentChatId to null
-        console.log('✅ [ChatStateService] State cleared, currentChatId now null');
     }
 
     // Private methods
@@ -179,12 +166,8 @@ export class ChatStateService {
     }
 
     private loadChatMessages(chatId: string): void {
-        console.log('🔵 [ChatStateService] Loading messages for chatId:', chatId);
-
         this.chatService.loadChatMessages(chatId).subscribe({
             next: (chatMessages) => {
-                console.log('✅ [ChatStateService] Loaded chat messages:', chatMessages);
-
                 const messages: Message[] = [];
                 let lastAiPosts: NetworkPost[] = [];
 
@@ -223,15 +206,12 @@ export class ChatStateService {
 
                 // If we found ai-posts, set them in social state and show AI response
                 if (lastAiPosts.length > 0) {
-                    console.log('📦 [ChatStateService] Restoring social posts from history:', lastAiPosts);
                     this.socialStateService.socialPosts.set(lastAiPosts);
                     this.showAIResponse.set(true);
                 } else {
                     this.socialStateService.clearSocialPosts();
                     this.showAIResponse.set(messages.length > 0 && messages[messages.length - 1].sender === 'ai');
                 }
-
-                console.log('✅ [ChatStateService] Messages processed and set');
             },
             error: (error) => {
                 console.error('❌ [ChatStateService] Error loading chat messages:', error);

@@ -46,18 +46,14 @@ export class ChatService {
         this._isLoadingChats.set(true);
         const url = `${this.baseUrl}/chat/user/${userId}`;
 
-        console.log('🔵 [ChatService] Loading chats for user:', { userId, url });
-
         this.http.get<Chat[]>(url)
             .pipe(
                 tap(chats => {
-                    console.log('✅ [ChatService] Chats loaded successfully:', chats);
                     this._chats.set(chats);
 
                     // If we have chats and no current chat selected, select the most recent
                     if (chats.length > 0 && !this._currentChatId()) {
                         this._currentChatId.set(chats[0]._id);
-                        console.log('✅ [ChatService] Selected first chat:', chats[0]._id);
                     }
                 }),
                 catchError(error => {
@@ -89,15 +85,11 @@ export class ChatService {
         const url = `${this.baseUrl}/chat`;
         const body = { userId, title: null };
 
-        console.log('🔵 [ChatService] Creating new chat:', { url, body });
-
         return this.http.post<CreateChatResponse>(url, body)
             .pipe(
                 tap(newChat => {
-                    console.log('✅ [ChatService] Chat created successfully:', newChat);
                     this._chats.update(chats => [newChat, ...chats]);
                     this._currentChatId.set(newChat._id);
-                    console.log('✅ [ChatService] Chat list updated, new chat selected');
                 }),
                 catchError(error => {
                     console.error('❌ [ChatService] Error creating chat:', error);
@@ -117,19 +109,15 @@ export class ChatService {
     deleteChat(chatId: string): Observable<boolean> {
         const url = `${this.baseUrl}/chat/${chatId}`;
 
-        console.log('🔵 [ChatService] Deleting chat:', { chatId, url });
-
         return this.http.delete(url)
             .pipe(
                 tap(() => {
-                    console.log('✅ [ChatService] Chat deleted successfully:', chatId);
                     this._chats.update(chats => chats.filter(chat => chat._id !== chatId));
 
                     // If we deleted the current chat, select another one
                     if (this._currentChatId() === chatId) {
                         const remainingChats = this._chats();
                         this._currentChatId.set(remainingChats.length > 0 ? remainingChats[0]._id : null);
-                        console.log('✅ [ChatService] Selected new current chat:', this._currentChatId());
                     }
                 }),
                 map(() => true),
@@ -152,18 +140,14 @@ export class ChatService {
         const url = `${this.baseUrl}/chat/${chatId}`;
         const body = { title };
 
-        console.log('🔵 [ChatService] Renaming chat:', { chatId, title, url, body });
-
         return this.http.patch(url, body)
             .pipe(
                 tap(() => {
-                    console.log('✅ [ChatService] Chat renamed successfully:', { chatId, title });
                     this._chats.update(chats =>
                         chats.map(chat =>
                             chat._id === chatId ? { ...chat, title } : chat
                         )
                     );
-                    console.log('✅ [ChatService] Chat list updated with new title');
                 }),
                 map(() => true),
                 catchError(error => {
@@ -182,9 +166,7 @@ export class ChatService {
      * Select a chat
      */
     selectChat(chatId: string): void {
-        console.log('🔵 [ChatService] Selecting chat:', chatId);
         this._currentChatId.set(chatId);
-        console.log('✅ [ChatService] Chat selected:', chatId);
     }
 
     /**
@@ -193,16 +175,9 @@ export class ChatService {
     loadChatMessages(chatId: string): Observable<ChatMessage[]> {
         const url = `${this.baseUrl}/chat/${chatId}/messages`;
 
-        console.log('🔵 [ChatService] Loading messages for chat:', { chatId, url });
-
         return this.http.get<ChatMessage[]>(url)
             .pipe(
                 tap(messages => {
-                    console.log('✅ [ChatService] Messages loaded successfully:', {
-                        chatId,
-                        messageCount: messages.length,
-                        messages
-                    });
                 }),
                 catchError(error => {
                     console.error('❌ [ChatService] Error loading chat messages:', error);

@@ -12,20 +12,15 @@ export class ChatListComponent {
 
     onChatSelect(chatId: string) {
         if (this.editingChatId === chatId) return;
-        console.log('🔵 [ChatList] Chat selected:', chatId);
         this.chatService.selectChat(chatId);
     }
 
     onDeleteChat(chatId: string, event: Event) {
         event.stopPropagation();
-        console.log('🔵 [ChatList] Delete chat clicked:', chatId);
 
         if (confirm('¿Estás seguro de que quieres eliminar este chat?')) {
             this.chatService.deleteChat(chatId).subscribe({
                 next: (success) => {
-                    if (success) {
-                        console.log('✅ [ChatList] Chat deleted successfully');
-                    }
                 },
                 error: (error) => {
                     console.error('❌ [ChatList] Error deleting chat:', error);
@@ -36,7 +31,6 @@ export class ChatListComponent {
 
     onRenameChat(chatId: string, event: Event) {
         event.stopPropagation();
-        console.log('🔵 [ChatList] Rename chat clicked:', chatId);
         this.startEditing(chatId, event);
     }
 
@@ -58,7 +52,6 @@ export class ChatListComponent {
         this.chatService.renameChat(chatId, newTitle.trim()).subscribe({
             next: (success) => {
                 if (success) {
-                    console.log('✅ [ChatList] Chat renamed successfully');
                     this.editingChatId = null;
                 }
             },
