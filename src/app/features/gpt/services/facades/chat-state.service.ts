@@ -160,7 +160,8 @@ export class ChatStateService {
         this.isLoading.set(false);
 
         if (this.hasContext(response.context)) {
-            this.socialStateService.generateSocialContent(response.context, messageId);
+            const currentChatId = this.chatService.currentChatId() || undefined;
+            this.socialStateService.generateSocialContent(response.context, messageId, currentChatId);
             return;
         }
 

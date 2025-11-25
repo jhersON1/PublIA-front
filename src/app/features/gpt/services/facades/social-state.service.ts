@@ -14,12 +14,12 @@ export class SocialStateService {
     private gptService = inject(GptService);
     private chatService = inject(ChatService);
 
-    generateSocialContent(context: string, messageId?: string): void {
-        console.log('🔵 [SocialStateService] Generating social content with messageId:', messageId);
+    generateSocialContent(context: string, messageId?: string, chatId?: string): void {
+        console.log('🔵 [SocialStateService] Generating social content with messageId:', messageId, 'chatId:', chatId);
 
         this.isLoading.set(true);
 
-        this.gptService.generateSocialContent(context, messageId).subscribe({
+        this.gptService.generateSocialContent(context, messageId, chatId).subscribe({
             next: (posts) => {
                 this.socialPosts.set(posts);
 

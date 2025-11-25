@@ -18,6 +18,7 @@ export interface ChatResponse {
 
 export interface GeneratePostsRequest {
   prompt: string;
+  chatId?: string;
 }
 
 export interface GeneratePostsResponse {
@@ -65,8 +66,11 @@ export class GptService {
     );
   }
 
-  generatePosts(prompt: string): Observable<GeneratePostsResponse> {
+  generatePosts(prompt: string, chatId?: string): Observable<GeneratePostsResponse> {
     const body: GeneratePostsRequest = { prompt };
+    if (chatId) {
+      body.chatId = chatId;
+    }
     return this.http.post<GeneratePostsResponse>(this.GENERATE_POSTS_URL, body);
   }
 
@@ -155,11 +159,12 @@ export class GptService {
    * Emite actualizaciones progresivas a medida que se completa la generación de medios.
    * @param context - Contexto para generar los posts
    * @param messageId - Optional message ID to associate media with
+   * @param chatId - Optional chat ID to associate posts with
    */
-  generateSocialContent(context: string, messageId?: string): Observable<NetworkPost[]> {
-    console.log('🔵 [GptService] Generating social content with messageId:', messageId);
+  generateSocialContent(context: string, messageId?: string, chatId?: string): Observable<NetworkPost[]> {
+    console.log('🔵 [GptService] Generating social content with messageId:', messageId, 'chatId:', chatId);
 
-    return this.generatePosts(context).pipe(
+    return this.generatePosts(context, chatId).pipe(
       switchMap(response => {
         console.log('📦 Generate Posts Response:', response);
         const posts = Object.values(response.networks);
@@ -193,7 +198,7 @@ export class GptService {
 
         // Image Generation Update
         if (instagramPost?.suggested_image_prompt) {
-          const imageUpdate = this.generateImage(instagramPost.suggested_image_prompt, '', messageId).pipe(
+          const imageUpdate = this.generateImage(instagramPost.suggested_image_prompt, '', undefined).pipe(
             map(imageResponse => ({
               type: 'IMAGE' as const,
               data: { url: imageResponse.url }
@@ -211,7 +216,7 @@ export class GptService {
 
         // Video Generation Update
         if (tiktokPost?.suggested_video_prompt) {
-          const videoUpdate = this.generateVideo(tiktokPost.suggested_video_prompt, messageId).pipe(
+          const videoUpdate = this.generateVideo(tiktokPost.suggested_video_prompt, undefined).pipe(
             map(videoUrl => ({
               type: 'VIDEO' as const,
               data: { url: videoUrl }
