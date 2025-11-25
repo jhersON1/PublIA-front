@@ -2,7 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { concat, map, Observable, of, switchMap, catchError, merge, tap, scan } from 'rxjs';
 import { NetworkPost } from '../interfaces/network-post.interface';
-import { PLATFORMS } from '../constants/gpt.constants';
+import { PLATFORMS, GPT_API_URLS } from '../constants/gpt.constants';
 
 export interface ChatRequest {
   prompt: string;
@@ -42,13 +42,6 @@ type UpdateEvent = { type: 'IMAGE' | 'VIDEO'; data: { url?: string; error?: bool
   providedIn: 'root'
 })
 export class GptService {
-  private readonly BASE_URL = 'http://localhost:3000/gpt';
-  private readonly CHAT_URL = `${this.BASE_URL}/chat`;
-  private readonly GENERATE_POSTS_URL = `${this.BASE_URL}/generate-posts`;
-  private readonly GENERATE_IMAGE_URL = `${this.BASE_URL}/generate-image`;
-  private readonly VIDEO_GENERATE_URL = `${this.BASE_URL}/veo/generate`;
-  private readonly VIDEO_STATUS_URL = `${this.BASE_URL}/veo/status`;
-
   private http: HttpClient = inject(HttpClient);
 
   // ==================== PUBLIC METHODS ====================
@@ -63,7 +56,7 @@ export class GptService {
       body.chatId = chatId;
     }
 
-    return this.http.post<ChatResponse>(this.CHAT_URL, body);
+    return this.http.post<ChatResponse>(GPT_API_URLS.CHAT, body);
   }
 
   generatePosts(prompt: string, chatId?: string): Observable<GeneratePostsResponse> {
@@ -71,7 +64,7 @@ export class GptService {
     if (chatId) {
       body.chatId = chatId;
     }
-    return this.http.post<GeneratePostsResponse>(this.GENERATE_POSTS_URL, body);
+    return this.http.post<GeneratePostsResponse>(GPT_API_URLS.GENERATE_POSTS, body);
   }
 
   generateImage(prompt: string, previousResponseId: string = '', messageId?: string): Observable<GenerateImageResponse> {
@@ -84,7 +77,7 @@ export class GptService {
       body.messageId = messageId;
     }
 
-    return this.http.post<GenerateImageResponse>(this.GENERATE_IMAGE_URL, body);
+    return this.http.post<GenerateImageResponse>(GPT_API_URLS.GENERATE_IMAGE, body);
   }
 
   startVideoGeneration(prompt: string, messageId?: string): Observable<{ operationId: string }> {
@@ -94,11 +87,11 @@ export class GptService {
       body.messageId = messageId;
     }
 
-    return this.http.post<{ operationId: string }>(this.VIDEO_GENERATE_URL, body);
+    return this.http.post<{ operationId: string }>(GPT_API_URLS.VIDEO_GENERATE, body);
   }
 
   checkVideoStatus(operationId: string): Observable<{ status: string; url?: string }> {
-    return this.http.get<{ status: string; url?: string }>(`${this.VIDEO_STATUS_URL}?id=${operationId}`);
+    return this.http.get<{ status: string; url?: string }>(`${GPT_API_URLS.VIDEO_STATUS}?id=${operationId}`);
   }
 
   generateVideo(prompt: string, messageId?: string): Observable<string> {
