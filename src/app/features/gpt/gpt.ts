@@ -25,7 +25,22 @@ export class Gpt {
    * Maneja la publicación de todas las publicaciones sociales.
    */
   handlePublishAll(): void {
-    this.socialPublishingService.publishAll(this.socialStateService.socialPosts());
+    this.socialPublishingService.publishAll(this.socialStateService.socialPosts())
+      .subscribe(response => {
+        console.log('Social Post Response:', response);
+        if (response.ok) {
+          this.socialStateService.setPostPublicationResult(
+            response.platform,
+            'success',
+            response.permalink
+          );
+        } else {
+          this.socialStateService.setPostPublicationResult(
+            response.platform,
+            'error'
+          );
+        }
+      });
   }
 
   toggleSidebar(): void {
