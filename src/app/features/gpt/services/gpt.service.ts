@@ -59,11 +59,7 @@ export class GptService {
       body.chatId = chatId;
     }
 
-    console.log('🔵 [GptService] Sending message:', body);
-
-    return this.http.post<ChatResponse>(this.CHAT_URL, body).pipe(
-      tap(response => console.log('✅ [GptService] Message response:', response))
-    );
+    return this.http.post<ChatResponse>(this.CHAT_URL, body);
   }
 
   generatePosts(prompt: string, chatId?: string): Observable<GeneratePostsResponse> {
@@ -84,11 +80,7 @@ export class GptService {
       body.messageId = messageId;
     }
 
-    console.log('🔵 [GptService] Generating image:', body);
-
-    return this.http.post<GenerateImageResponse>(this.GENERATE_IMAGE_URL, body).pipe(
-      tap(response => console.log('✅ [GptService] Image generated:', response))
-    );
+    return this.http.post<GenerateImageResponse>(this.GENERATE_IMAGE_URL, body);
   }
 
   startVideoGeneration(prompt: string, messageId?: string): Observable<{ operationId: string }> {
@@ -98,11 +90,7 @@ export class GptService {
       body.messageId = messageId;
     }
 
-    console.log('🔵 [GptService] Starting video generation:', body);
-
-    return this.http.post<{ operationId: string }>(this.VIDEO_GENERATE_URL, body).pipe(
-      tap(response => console.log('✅ [GptService] Video generation started:', response))
-    );
+    return this.http.post<{ operationId: string }>(this.VIDEO_GENERATE_URL, body);
   }
 
   checkVideoStatus(operationId: string): Observable<{ status: string; url?: string }> {
@@ -137,7 +125,6 @@ export class GptService {
                   observer.error('Video generation failed');
                 } else if (statusResponse.status === 'RUNNING') {
                   // Continue polling
-                  console.log('Video generation in progress...');
                 }
               },
               error: (err) => {
@@ -162,33 +149,23 @@ export class GptService {
    * @param chatId - Optional chat ID to associate posts with
    */
   generateSocialContent(context: string, messageId?: string, chatId?: string): Observable<NetworkPost[]> {
-    console.log('🔵 [GptService] Generating social content with messageId:', messageId, 'chatId:', chatId);
-
     return this.generatePosts(context, chatId).pipe(
       switchMap(response => {
-        console.log('📦 Generate Posts Response:', response);
         const posts = Object.values(response.networks);
-        console.log('📦 Posts Array:', posts);
 
         const instagramPost = posts.find(p => p.platform.toLowerCase() === PLATFORMS.INSTAGRAM);
         const tiktokPost = posts.find(p => p.platform.toLowerCase() === PLATFORMS.TIKTOK);
 
-        console.log('📸 Instagram Post:', instagramPost);
-        console.log('🎬 TikTok Post:', tiktokPost);
-
         // 1. Set initial loading states
         if (instagramPost?.suggested_image_prompt) {
-          console.log('📸 Starting Instagram image generation with prompt:', instagramPost.suggested_image_prompt);
           instagramPost.isLoadingImage = true;
         }
         if (tiktokPost?.suggested_video_prompt) {
-          console.log('🎬 Starting TikTok video generation with prompt:', tiktokPost.suggested_video_prompt);
           tiktokPost.isLoadingVideo = true;
         }
 
         // If no media generation needed, return immediately
         if (!instagramPost?.suggested_image_prompt && !tiktokPost?.suggested_video_prompt) {
-          console.log('✅ No media generation needed, returning posts as-is');
           return of(posts);
         }
 
@@ -241,7 +218,6 @@ export class GptService {
               return (currentPosts: NetworkPost[]) => {
                 return currentPosts.map(post => {
                   if (updateEvent.type === 'IMAGE' && post.platform.toLowerCase() === PLATFORMS.INSTAGRAM) {
-                    console.log('📸 Applying Instagram image update');
                     return {
                       ...post,
                       imageUrl: updateEvent.data.url,
@@ -249,7 +225,6 @@ export class GptService {
                     };
                   }
                   if (updateEvent.type === 'VIDEO' && post.platform.toLowerCase() === PLATFORMS.TIKTOK) {
-                    console.log('🎬 Applying TikTok video update');
                     return {
                       ...post,
                       videoUrl: updateEvent.data.url,

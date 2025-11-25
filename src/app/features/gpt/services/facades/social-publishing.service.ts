@@ -23,8 +23,6 @@ export class SocialPublishingService {
     ) { }
 
     publishAll(posts: NetworkPost[]): void {
-        console.log('Publicar todas las publicaciones', posts);
-
         posts.forEach(post => {
             switch (post.platform.toLowerCase()) {
                 case PLATFORMS.FACEBOOK:
@@ -49,7 +47,6 @@ export class SocialPublishingService {
     private publishToFacebook(post: NetworkPost): void {
         this.facebookService.publishFacebook({ text: post.text }).subscribe({
             next: (response) => {
-                console.log('Facebook post published:', response);
             },
             error: (error) => {
                 console.error('Error publishing to Facebook:', error);
@@ -65,7 +62,6 @@ export class SocialPublishingService {
             articleDescription: 'Your source for insights and information about LinkedIn.'
         }).subscribe({
             next: (response) => {
-                console.log('LinkedIn post published:', response);
             },
             error: (error) => {
                 console.error('Error publishing to LinkedIn:', error);
@@ -82,7 +78,6 @@ export class SocialPublishingService {
                         caption: post.text
                     }).subscribe({
                         next: (response) => {
-                            console.log('Instagram post published:', response);
                         },
                         error: (error) => {
                             console.error('Error publishing to Instagram:', error);
@@ -99,7 +94,6 @@ export class SocialPublishingService {
                 caption: post.text
             }).subscribe({
                 next: (response) => {
-                    console.log('Instagram post published:', response);
                 },
                 error: (error) => {
                     console.error('Error publishing to Instagram:', error);
@@ -115,8 +109,6 @@ export class SocialPublishingService {
 
         this.whatsAppService.publish(post.text, publishType).subscribe({
             next: (response) => {
-                const action = publishType === 'number' ? 'mensaje enviado a número' : 'estado publicado';
-                console.log(`WhatsApp ${action}:`, response);
             },
             error: (error) => {
                 const action = publishType === 'number' ? 'enviar mensaje' : 'publicar estado';
@@ -131,10 +123,6 @@ export class SocialPublishingService {
             // Video subido localmente
             this.tiktokService.publishVideo(post.localImageFile).subscribe({
                 next: (response) => {
-                    console.log('TikTok video published from local file:', response);
-                    if (response.success) {
-                        console.log(response.message);
-                    }
                 },
                 error: (error) => {
                     console.error('Error publishing local video to TikTok:', error);
@@ -144,10 +132,6 @@ export class SocialPublishingService {
             // Video generado por IA (URL de Cloudinary)
             this.tiktokService.publishVideoFromUrl(post.videoUrl).subscribe({
                 next: (response) => {
-                    console.log('TikTok video published from AI-generated URL:', response);
-                    if (response.success) {
-                        console.log(response.message);
-                    }
                 },
                 error: (error) => {
                     console.error('Error publishing AI-generated video to TikTok:', error);
