@@ -54,6 +54,16 @@ export class SocialStateService {
         );
     }
 
+    setPostPublicationResult(platform: string, status: 'success' | 'error', permalink?: string): void {
+        this.socialPosts.update(posts =>
+            posts.map(post =>
+                post.platform === platform
+                    ? { ...post, publicationStatus: status, permalink }
+                    : post
+            )
+        );
+    }
+
     updateWhatsAppPublishType(update: { platform: string; type: 'number' | 'status' }): void {
         this.socialPosts.update(posts =>
             posts.map(post =>

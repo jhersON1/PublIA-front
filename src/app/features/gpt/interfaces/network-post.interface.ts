@@ -12,5 +12,7 @@ export interface NetworkPost {
   videoUrl?: string;
   isLoadingVideo?: boolean;
   whatsappPublishType?: 'number' | 'status'; // 'number' = enviar a número, 'status' = subir a estado
+  permalink?: string;
+  publicationStatus?: 'idle' | 'success' | 'error';
   [key: string]: unknown;
 }
