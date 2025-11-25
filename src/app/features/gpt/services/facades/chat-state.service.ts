@@ -6,6 +6,7 @@ import { ChatService } from '../chat.service';
 import { Message } from '../../interfaces/message.interface';
 import { AVATAR_URLS } from '../../constants/gpt.constants';
 import { SocialStateService } from './social-state.service';
+import { NetworkPost } from '../../interfaces/network-post.interface';
 
 @Injectable({
     providedIn: 'root'
@@ -136,7 +137,7 @@ export class ChatStateService {
 
     // Private methods
 
-    private addMessage(sender: 'user' | 'ai', content: string, responseId?: string): void {
+    private addMessage(sender: 'user' | 'ai' | 'ai-posts', content: string, responseId?: string): void {
         const message: Message = {
             sender,
             content,
@@ -149,13 +150,17 @@ export class ChatStateService {
     }
 
     private handleChatSuccess(response: ChatResponse): void {
-        this.addMessage('ai', response.message, response.responseId);
+        // If we have context (posts), we treat this as an 'ai-posts' message
+        const sender = this.hasContext(response.context) ? 'ai-posts' : 'ai';
+        const messageId = response.messageId;
+
+        this.addMessage(sender, response.message, messageId);
         this.showAIResponse.set(true);
         this.lastResponseId = response.responseId;
         this.isLoading.set(false);
 
         if (this.hasContext(response.context)) {
-            this.socialStateService.generateSocialContent(response.context, this.chatService.currentChatId() || undefined);
+            this.socialStateService.generateSocialContent(response.context, messageId);
             return;
         }
 
@@ -179,22 +184,58 @@ export class ChatStateService {
             next: (chatMessages) => {
                 console.log('✅ [ChatStateService] Loaded chat messages:', chatMessages);
 
-                // Convert ChatMessage[] to Message[]
-                const messages: Message[] = chatMessages.map(msg => ({
-                    sender: msg.sender,
-                    content: msg.content,
-                    time: new Date(msg.createdAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
-                    avatar: msg.sender === 'user' ? AVATAR_URLS.USER : AVATAR_URLS.AI,
-                    type: msg.type,
-                    mediaUrl: msg.mediaUrl || undefined
-                }));
+                const messages: Message[] = [];
+                let lastAiPosts: NetworkPost[] = [];
+
+                chatMessages.forEach(msg => {
+                    if (msg.sender === 'ai-posts') {
+                        try {
+                            const parsedContent = JSON.parse(msg.content);
+                            const posts = Object.values(parsedContent.networks || {}) as any[];
+
+                            // Map to NetworkPost interface
+                            lastAiPosts = posts.map(post => ({
+                                ...post,
+                                // Map mediaUrl to specific fields based on platform
+                                imageUrl: post.platform.toLowerCase() === 'instagram' ? post.mediaUrl : undefined,
+                                videoUrl: post.platform.toLowerCase() === 'tiktok' ? post.mediaUrl : undefined,
+                                // Reset loading states
+                                isLoadingImage: false,
+                                isLoadingVideo: false
+                            }));
+                        } catch (e) {
+                            console.error('❌ Error parsing ai-posts content:', e);
+                        }
+                    } else {
+                        messages.push({
+                            sender: msg.sender,
+                            content: msg.content,
+                            time: new Date(msg.createdAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+                            avatar: msg.sender === 'user' ? AVATAR_URLS.USER : AVATAR_URLS.AI,
+                            type: msg.type,
+                            mediaUrl: msg.mediaUrl || undefined
+                        });
+                    }
+                });
 
                 this.messages.set(messages);
-                console.log('✅ [ChatStateService] Messages converted and set:', messages);
+
+                // If we found ai-posts, set them in social state and show AI response
+                if (lastAiPosts.length > 0) {
+                    console.log('📦 [ChatStateService] Restoring social posts from history:', lastAiPosts);
+                    this.socialStateService.socialPosts.set(lastAiPosts);
+                    this.showAIResponse.set(true);
+                } else {
+                    this.socialStateService.clearSocialPosts();
+                    this.showAIResponse.set(messages.length > 0 && messages[messages.length - 1].sender === 'ai');
+                }
+
+                console.log('✅ [ChatStateService] Messages processed and set');
             },
             error: (error) => {
                 console.error('❌ [ChatStateService] Error loading chat messages:', error);
                 this.messages.set([]);
+                this.socialStateService.clearSocialPosts();
             }
         });
     }

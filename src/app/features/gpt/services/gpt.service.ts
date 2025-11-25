@@ -13,6 +13,7 @@ export interface ChatResponse {
   message: string;
   context: string;
   responseId: string;
+  messageId: string;
 }
 
 export interface GeneratePostsRequest {
@@ -21,6 +22,7 @@ export interface GeneratePostsRequest {
 
 export interface GeneratePostsResponse {
   networks: Record<string, NetworkPost>;
+  messageId: string;
 }
 
 export interface GenerateImageRequest {
@@ -68,14 +70,14 @@ export class GptService {
     return this.http.post<GeneratePostsResponse>(this.GENERATE_POSTS_URL, body);
   }
 
-  generateImage(prompt: string, previousResponseId: string = '', chatId?: string): Observable<GenerateImageResponse> {
+  generateImage(prompt: string, previousResponseId: string = '', messageId?: string): Observable<GenerateImageResponse> {
     const body: any = {
       prompt,
       previousResponseId
     };
 
-    if (chatId) {
-      body.chatId = chatId;
+    if (messageId) {
+      body.messageId = messageId;
     }
 
     console.log('🔵 [GptService] Generating image:', body);
@@ -85,11 +87,11 @@ export class GptService {
     );
   }
 
-  startVideoGeneration(prompt: string, chatId?: string): Observable<{ operationId: string }> {
+  startVideoGeneration(prompt: string, messageId?: string): Observable<{ operationId: string }> {
     const body: any = { prompt };
 
-    if (chatId) {
-      body.chatId = chatId;
+    if (messageId) {
+      body.messageId = messageId;
     }
 
     console.log('🔵 [GptService] Starting video generation:', body);
@@ -103,8 +105,8 @@ export class GptService {
     return this.http.get<{ status: string; url?: string }>(`${this.VIDEO_STATUS_URL}?id=${operationId}`);
   }
 
-  generateVideo(prompt: string, chatId?: string): Observable<string> {
-    return this.startVideoGeneration(prompt, chatId).pipe(
+  generateVideo(prompt: string, messageId?: string): Observable<string> {
+    return this.startVideoGeneration(prompt, messageId).pipe(
       switchMap(response => {
         const startTime = Date.now();
         const TIMEOUT_MS = 2 * 60 * 1000; // 2 minutes
@@ -152,10 +154,10 @@ export class GptService {
    * Genera publicaciones para redes sociales y, si es necesario, la imagen para Instagram y video para TikTok.
    * Emite actualizaciones progresivas a medida que se completa la generación de medios.
    * @param context - Contexto para generar los posts
-   * @param chatId - Optional chat ID to associate media with
+   * @param messageId - Optional message ID to associate media with
    */
-  generateSocialContent(context: string, chatId?: string): Observable<NetworkPost[]> {
-    console.log('🔵 [GptService] Generating social content with chatId:', chatId);
+  generateSocialContent(context: string, messageId?: string): Observable<NetworkPost[]> {
+    console.log('🔵 [GptService] Generating social content with messageId:', messageId);
 
     return this.generatePosts(context).pipe(
       switchMap(response => {
@@ -191,7 +193,7 @@ export class GptService {
 
         // Image Generation Update
         if (instagramPost?.suggested_image_prompt) {
-          const imageUpdate = this.generateImage(instagramPost.suggested_image_prompt, '', chatId).pipe(
+          const imageUpdate = this.generateImage(instagramPost.suggested_image_prompt, '', messageId).pipe(
             map(imageResponse => ({
               type: 'IMAGE' as const,
               data: { url: imageResponse.url }
@@ -209,7 +211,7 @@ export class GptService {
 
         // Video Generation Update
         if (tiktokPost?.suggested_video_prompt) {
-          const videoUpdate = this.generateVideo(tiktokPost.suggested_video_prompt, chatId).pipe(
+          const videoUpdate = this.generateVideo(tiktokPost.suggested_video_prompt, messageId).pipe(
             map(videoUrl => ({
               type: 'VIDEO' as const,
               data: { url: videoUrl }
