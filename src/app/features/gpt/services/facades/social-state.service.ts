@@ -14,13 +14,12 @@ export class SocialStateService {
     private gptService = inject(GptService);
     private chatService = inject(ChatService);
 
-    generateSocialContent(context: string, chatId?: string): void {
-        const currentChatId = chatId || this.chatService.currentChatId();
-        console.log('🔵 [SocialStateService] Generating social content with chatId:', currentChatId);
+    generateSocialContent(context: string, messageId?: string, chatId?: string): void {
+        console.log('🔵 [SocialStateService] Generating social content with messageId:', messageId, 'chatId:', chatId);
 
         this.isLoading.set(true);
 
-        this.gptService.generateSocialContent(context, currentChatId || undefined).subscribe({
+        this.gptService.generateSocialContent(context, messageId, chatId).subscribe({
             next: (posts) => {
                 this.socialPosts.set(posts);
 
@@ -52,6 +51,16 @@ export class SocialStateService {
             posts.map(post =>
                 post.platform === update.platform
                     ? { ...post, localImageFile: update.file }
+                    : post
+            )
+        );
+    }
+
+    updateWhatsAppPublishType(update: { platform: string; type: 'number' | 'status' }): void {
+        this.socialPosts.update(posts =>
+            posts.map(post =>
+                post.platform === update.platform
+                    ? { ...post, whatsappPublishType: update.type }
                     : post
             )
         );

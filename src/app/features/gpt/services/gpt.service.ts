@@ -1,6 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { concat, map, Observable, of, switchMap, catchError, merge, tap } from 'rxjs';
+import { concat, map, Observable, of, switchMap, catchError, merge, tap, scan } from 'rxjs';
 import { NetworkPost } from '../interfaces/network-post.interface';
 import { PLATFORMS } from '../constants/gpt.constants';
 
@@ -13,14 +13,17 @@ export interface ChatResponse {
   message: string;
   context: string;
   responseId: string;
+  messageId: string;
 }
 
 export interface GeneratePostsRequest {
   prompt: string;
+  chatId?: string;
 }
 
 export interface GeneratePostsResponse {
   networks: Record<string, NetworkPost>;
+  messageId: string;
 }
 
 export interface GenerateImageRequest {
@@ -63,19 +66,22 @@ export class GptService {
     );
   }
 
-  generatePosts(prompt: string): Observable<GeneratePostsResponse> {
+  generatePosts(prompt: string, chatId?: string): Observable<GeneratePostsResponse> {
     const body: GeneratePostsRequest = { prompt };
+    if (chatId) {
+      body.chatId = chatId;
+    }
     return this.http.post<GeneratePostsResponse>(this.GENERATE_POSTS_URL, body);
   }
 
-  generateImage(prompt: string, previousResponseId: string = '', chatId?: string): Observable<GenerateImageResponse> {
+  generateImage(prompt: string, previousResponseId: string = '', messageId?: string): Observable<GenerateImageResponse> {
     const body: any = {
       prompt,
       previousResponseId
     };
 
-    if (chatId) {
-      body.chatId = chatId;
+    if (messageId) {
+      body.messageId = messageId;
     }
 
     console.log('🔵 [GptService] Generating image:', body);
@@ -85,11 +91,11 @@ export class GptService {
     );
   }
 
-  startVideoGeneration(prompt: string, chatId?: string): Observable<{ operationId: string }> {
+  startVideoGeneration(prompt: string, messageId?: string): Observable<{ operationId: string }> {
     const body: any = { prompt };
 
-    if (chatId) {
-      body.chatId = chatId;
+    if (messageId) {
+      body.messageId = messageId;
     }
 
     console.log('🔵 [GptService] Starting video generation:', body);
@@ -103,8 +109,8 @@ export class GptService {
     return this.http.get<{ status: string; url?: string }>(`${this.VIDEO_STATUS_URL}?id=${operationId}`);
   }
 
-  generateVideo(prompt: string, chatId?: string): Observable<string> {
-    return this.startVideoGeneration(prompt, chatId).pipe(
+  generateVideo(prompt: string, messageId?: string): Observable<string> {
+    return this.startVideoGeneration(prompt, messageId).pipe(
       switchMap(response => {
         const startTime = Date.now();
         const TIMEOUT_MS = 2 * 60 * 1000; // 2 minutes
@@ -152,12 +158,13 @@ export class GptService {
    * Genera publicaciones para redes sociales y, si es necesario, la imagen para Instagram y video para TikTok.
    * Emite actualizaciones progresivas a medida que se completa la generación de medios.
    * @param context - Contexto para generar los posts
-   * @param chatId - Optional chat ID to associate media with
+   * @param messageId - Optional message ID to associate media with
+   * @param chatId - Optional chat ID to associate posts with
    */
-  generateSocialContent(context: string, chatId?: string): Observable<NetworkPost[]> {
-    console.log('🔵 [GptService] Generating social content with chatId:', chatId);
+  generateSocialContent(context: string, messageId?: string, chatId?: string): Observable<NetworkPost[]> {
+    console.log('🔵 [GptService] Generating social content with messageId:', messageId, 'chatId:', chatId);
 
-    return this.generatePosts(context).pipe(
+    return this.generatePosts(context, chatId).pipe(
       switchMap(response => {
         console.log('📦 Generate Posts Response:', response);
         const posts = Object.values(response.networks);
@@ -185,59 +192,77 @@ export class GptService {
           return of(posts);
         }
 
-        // 2. Create observables for media generation tasks
-        const tasks: Observable<NetworkPost[]>[] = [];
+        // 2. Create observables for media generation updates
+        type UpdateEvent = { type: 'IMAGE' | 'VIDEO'; data: { url?: string; error?: boolean } };
+        const updates: Observable<UpdateEvent>[] = [];
 
-        // Image Generation Task
+        // Image Generation Update
         if (instagramPost?.suggested_image_prompt) {
-          const imageTask = this.generateImage(instagramPost.suggested_image_prompt, '', chatId).pipe(
-            map(imageResponse => {
-              console.log('✅ Image generated successfully:', imageResponse.url);
-              return posts.map(p =>
-                p.platform.toLowerCase() === PLATFORMS.INSTAGRAM
-                  ? { ...p, imageUrl: imageResponse.url, isLoadingImage: false }
-                  : p
-              );
-            }),
+          const imageUpdate = this.generateImage(instagramPost.suggested_image_prompt, '', undefined).pipe(
+            map(imageResponse => ({
+              type: 'IMAGE' as const,
+              data: { url: imageResponse.url }
+            })),
             catchError(error => {
               console.error('❌ Error generating image:', error);
-              return of(posts.map(p =>
-                p.platform.toLowerCase() === PLATFORMS.INSTAGRAM
-                  ? { ...p, isLoadingImage: false }
-                  : p
-              ));
+              return of({
+                type: 'IMAGE' as const,
+                data: { error: true }
+              });
             })
           );
-          tasks.push(imageTask);
+          updates.push(imageUpdate);
         }
 
-        // Video Generation Task
+        // Video Generation Update
         if (tiktokPost?.suggested_video_prompt) {
-          const videoTask = this.generateVideo(tiktokPost.suggested_video_prompt, chatId).pipe(
-            map(videoUrl => {
-              console.log('✅ Video generated successfully:', videoUrl);
-              return posts.map(p =>
-                p.platform.toLowerCase() === PLATFORMS.TIKTOK
-                  ? { ...p, videoUrl: videoUrl, isLoadingVideo: false }
-                  : p
-              );
-            }),
+          const videoUpdate = this.generateVideo(tiktokPost.suggested_video_prompt, undefined).pipe(
+            map(videoUrl => ({
+              type: 'VIDEO' as const,
+              data: { url: videoUrl }
+            })),
             catchError(error => {
               console.error('❌ Error generating video:', error);
-              return of(posts.map(p =>
-                p.platform.toLowerCase() === PLATFORMS.TIKTOK
-                  ? { ...p, isLoadingVideo: false }
-                  : p
-              ));
+              return of({
+                type: 'VIDEO' as const,
+                data: { error: true }
+              });
             })
           );
-          tasks.push(videoTask);
+          updates.push(videoUpdate);
         }
 
-        // 3. Emit initial posts immediately, then merge media generation updates
+        // 3. Emit initial posts, then progressively apply updates using scan
         return concat(
           of(posts),
-          merge(...tasks)
+          merge(...updates).pipe(
+            // Use scan to accumulate updates on top of the current state
+            map((updateEvent): ((currentPosts: NetworkPost[]) => NetworkPost[]) => {
+              return (currentPosts: NetworkPost[]) => {
+                return currentPosts.map(post => {
+                  if (updateEvent.type === 'IMAGE' && post.platform.toLowerCase() === PLATFORMS.INSTAGRAM) {
+                    console.log('📸 Applying Instagram image update');
+                    return {
+                      ...post,
+                      imageUrl: updateEvent.data.url,
+                      isLoadingImage: false
+                    };
+                  }
+                  if (updateEvent.type === 'VIDEO' && post.platform.toLowerCase() === PLATFORMS.TIKTOK) {
+                    console.log('🎬 Applying TikTok video update');
+                    return {
+                      ...post,
+                      videoUrl: updateEvent.data.url,
+                      isLoadingVideo: false
+                    };
+                  }
+                  return post;
+                });
+              };
+            }),
+            // Scan to accumulate updates
+            scan((currentPosts: NetworkPost[], updateFn: (posts: NetworkPost[]) => NetworkPost[]) => updateFn(currentPosts), posts)
+          )
         );
       })
     );

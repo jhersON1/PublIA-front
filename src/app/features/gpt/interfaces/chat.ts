@@ -9,7 +9,7 @@ export interface Chat {
 export interface ChatMessage {
     _id: string;
     chatId: string;
-    sender: 'user' | 'ai';
+    sender: 'user' | 'ai' | 'ai-posts';
     content: string;
     type: 'text' | 'image' | 'video';
     mediaUrl?: string | null;

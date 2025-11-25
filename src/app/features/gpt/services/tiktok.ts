@@ -1,7 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { switchMap } from 'rxjs/operators';
 import { TiktokResponse } from '../interfaces';
 import { NETWORK_ENDPOINTS } from '../constants/networks';
 
@@ -12,21 +11,22 @@ export class Tiktok {
 
   constructor(private http: HttpClient) { }
 
-  publishVideo(video: File | string): Observable<TiktokResponse> {
-    if (typeof video === 'string') {
-      return this.http.get(video, { responseType: 'blob' }).pipe(
-        switchMap(blob => {
-          const file = new File([blob], 'video.mp4', { type: blob.type });
-          const formData = new FormData();
-          formData.append('file', file);
-          return this.http.post<TiktokResponse>(NETWORK_ENDPOINTS.TIKTOK.POST_VIDEO, formData);
-        })
-      );
-    }
-
+  /**
+   * Publica un video local (subido por el usuario)
+   */
+  publishVideo(video: File): Observable<TiktokResponse> {
     const formData = new FormData();
     formData.append('file', video);
-
     return this.http.post<TiktokResponse>(NETWORK_ENDPOINTS.TIKTOK.POST_VIDEO, formData);
+  }
+
+  /**
+   * Publica un video desde una URL (generado por IA en Cloudinary)
+   */
+  publishVideoFromUrl(videoUrl: string): Observable<TiktokResponse> {
+    return this.http.post<TiktokResponse>(
+      NETWORK_ENDPOINTS.TIKTOK.POST_VIDEO_FROM_URL,
+      { video_url: videoUrl }
+    );
   }
 }

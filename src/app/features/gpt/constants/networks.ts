@@ -9,12 +9,14 @@ export const NETWORK_ENDPOINTS = {
     },
     WHATSAPP: {
         SEND_TEMPLATE: `${environment.apiUrl}/meta/whatsapp/send-template`,
-        SEND_TEXT: `${environment.apiUrl}/meta/whatsapp/send-text`
+        SEND_TEXT: `${environment.apiUrl}/meta/whatsapp/send-text`,
+        POST_STATUS: `${environment.apiUrl}/whatsapp/status`
     },
     LINKEDIN: {
         POST_ARTICLE: `${environment.apiUrl}/linkedin/post-article`
     },
     TIKTOK: {
-        POST_VIDEO: `${environment.apiUrl}/tiktok/publish-tiktok`
+        POST_VIDEO: `${environment.apiUrl}/tiktok/publish-tiktok`,
+        POST_VIDEO_FROM_URL: `${environment.apiUrl}/tiktok/publish-tiktok-from-url`
     }
 };

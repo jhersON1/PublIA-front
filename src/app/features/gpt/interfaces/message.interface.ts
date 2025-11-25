@@ -1,5 +1,5 @@
 export interface Message {
-  sender: 'user' | 'ai';
+  sender: 'user' | 'ai' | 'ai-posts';
   content: string;
   time: string;
   avatar: string;

@@ -34,7 +34,9 @@
         (copyToClipboard)="chatStateService.copyToClipboard($event)"
         (regenerateResponse)="chatStateService.regenerateResponse()"
         (updatePost)="socialStateService.updatePost($event)"
-        (updateImageFile)="socialStateService.updateImageFile($event)" (publishAll)="handlePublishAll()">
+        (updateImageFile)="socialStateService.updateImageFile($event)"
+        (updateWhatsAppPublishType)="socialStateService.updateWhatsAppPublishType($event)"
+        (publishAll)="handlePublishAll()">
       </app-chat-container>
       <app-chat-input [isDisabled]="chatStateService.isLoading() || socialStateService.isLoading()"
         (sendMessage)="chatStateService.sendMessage($event)">

@@ -111,53 +111,50 @@ export class SocialPublishingService {
     }
 
     private publishToWhatsApp(post: NetworkPost): void {
-        this.whatsAppService.publishWhatsApp(
-            {
-                messaging_product: "whatsapp",
-                to: "59172184204",
-                type: "text",
-                text: {
-                    preview_url: false,
-                    body: post.text
-                }
-            }
-        ).subscribe({
+        const publishType = post.whatsappPublishType || 'status'; // Default: 'status'
+
+        this.whatsAppService.publish(post.text, publishType).subscribe({
             next: (response) => {
-                console.log('WhatsApp message sent:', response);
+                const action = publishType === 'number' ? 'mensaje enviado a número' : 'estado publicado';
+                console.log(`WhatsApp ${action}:`, response);
             },
             error: (error) => {
-                console.error('Error sending WhatsApp message:', error);
+                const action = publishType === 'number' ? 'enviar mensaje' : 'publicar estado';
+                console.error(`Error al ${action} en WhatsApp:`, error);
             }
         });
     }
 
     private publishToTikTok(post: NetworkPost): void {
+        // Prioridad: archivo local > video generado por IA
         if (post.localImageFile) {
+            // Video subido localmente
             this.tiktokService.publishVideo(post.localImageFile).subscribe({
                 next: (response) => {
-                    console.log('TikTok video published:', response);
+                    console.log('TikTok video published from local file:', response);
                     if (response.success) {
                         console.log(response.message);
                     }
                 },
                 error: (error) => {
-                    console.error('Error publishing to TikTok:', error);
+                    console.error('Error publishing local video to TikTok:', error);
                 }
             });
         } else if (post.videoUrl) {
-            this.tiktokService.publishVideo(post.videoUrl).subscribe({
+            // Video generado por IA (URL de Cloudinary)
+            this.tiktokService.publishVideoFromUrl(post.videoUrl).subscribe({
                 next: (response) => {
-                    console.log('TikTok video published:', response);
+                    console.log('TikTok video published from AI-generated URL:', response);
                     if (response.success) {
                         console.log(response.message);
                     }
                 },
                 error: (error) => {
-                    console.error('Error publishing to TikTok:', error);
+                    console.error('Error publishing AI-generated video to TikTok:', error);
                 }
             });
         } else {
-            console.warn('TikTok post has no video file to publish');
+            console.warn('TikTok post has no video file or URL to publish');
         }
     }
 }
