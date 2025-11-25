@@ -36,6 +36,8 @@ export interface GenerateImageResponse {
   responseId: string;
 }
 
+type UpdateEvent = { type: 'IMAGE' | 'VIDEO'; data: { url?: string; error?: boolean } };
+
 @Injectable({
   providedIn: 'root'
 })
@@ -48,6 +50,8 @@ export class GptService {
   private readonly VIDEO_STATUS_URL = `${this.BASE_URL}/veo/status`;
 
   private http: HttpClient = inject(HttpClient);
+
+  // ==================== PUBLIC METHODS ====================
 
   sendMessage(prompt: string, previousResponseId: string = '', chatId?: string): Observable<ChatResponse> {
     const body: any = {
@@ -99,45 +103,7 @@ export class GptService {
 
   generateVideo(prompt: string, messageId?: string): Observable<string> {
     return this.startVideoGeneration(prompt, messageId).pipe(
-      switchMap(response => {
-        const startTime = Date.now();
-        const TIMEOUT_MS = 2 * 60 * 1000; // 2 minutes
-
-        return new Observable<string>(observer => {
-          const pollInterval = setInterval(() => {
-            // Check timeout
-            if (Date.now() - startTime > TIMEOUT_MS) {
-              clearInterval(pollInterval);
-              console.error('Video generation timeout after 2 minutes');
-              observer.error('Video generation timeout');
-              return;
-            }
-
-            this.checkVideoStatus(response.operationId).subscribe({
-              next: (statusResponse) => {
-                if (statusResponse.status === 'COMPLETED' && statusResponse.url) {
-                  clearInterval(pollInterval);
-                  observer.next(statusResponse.url);
-                  observer.complete();
-                } else if (statusResponse.status === 'FAILED') {
-                  clearInterval(pollInterval);
-                  console.error('Video generation failed');
-                  observer.error('Video generation failed');
-                } else if (statusResponse.status === 'RUNNING') {
-                  // Continue polling
-                }
-              },
-              error: (err) => {
-                clearInterval(pollInterval);
-                console.error('Error checking video status:', err);
-                observer.error(err);
-              }
-            });
-          }, 15000); // Poll every 15 seconds
-
-          return () => clearInterval(pollInterval);
-        });
-      })
+      switchMap(response => this.pollVideoStatus(response.operationId))
     );
   }
 
@@ -152,94 +118,186 @@ export class GptService {
     return this.generatePosts(context, chatId).pipe(
       switchMap(response => {
         const posts = Object.values(response.networks);
-
         const instagramPost = posts.find(p => p.platform.toLowerCase() === PLATFORMS.INSTAGRAM);
         const tiktokPost = posts.find(p => p.platform.toLowerCase() === PLATFORMS.TIKTOK);
 
-        // 1. Set initial loading states
-        if (instagramPost?.suggested_image_prompt) {
-          instagramPost.isLoadingImage = true;
-        }
-        if (tiktokPost?.suggested_video_prompt) {
-          tiktokPost.isLoadingVideo = true;
-        }
+        this.setLoadingStates(instagramPost, tiktokPost);
 
         // If no media generation needed, return immediately
         if (!instagramPost?.suggested_image_prompt && !tiktokPost?.suggested_video_prompt) {
           return of(posts);
         }
 
-        // 2. Create observables for media generation updates
-        type UpdateEvent = { type: 'IMAGE' | 'VIDEO'; data: { url?: string; error?: boolean } };
-        const updates: Observable<UpdateEvent>[] = [];
-
-        // Image Generation Update
-        if (instagramPost?.suggested_image_prompt) {
-          const imageUpdate = this.generateImage(instagramPost.suggested_image_prompt, '', undefined).pipe(
-            map(imageResponse => ({
-              type: 'IMAGE' as const,
-              data: { url: imageResponse.url }
-            })),
-            catchError(error => {
-              console.error('❌ Error generating image:', error);
-              return of({
-                type: 'IMAGE' as const,
-                data: { error: true }
-              });
-            })
-          );
-          updates.push(imageUpdate);
-        }
-
-        // Video Generation Update
-        if (tiktokPost?.suggested_video_prompt) {
-          const videoUpdate = this.generateVideo(tiktokPost.suggested_video_prompt, undefined).pipe(
-            map(videoUrl => ({
-              type: 'VIDEO' as const,
-              data: { url: videoUrl }
-            })),
-            catchError(error => {
-              console.error('❌ Error generating video:', error);
-              return of({
-                type: 'VIDEO' as const,
-                data: { error: true }
-              });
-            })
-          );
-          updates.push(videoUpdate);
-        }
-
-        // 3. Emit initial posts, then progressively apply updates using scan
-        return concat(
-          of(posts),
-          merge(...updates).pipe(
-            // Use scan to accumulate updates on top of the current state
-            map((updateEvent): ((currentPosts: NetworkPost[]) => NetworkPost[]) => {
-              return (currentPosts: NetworkPost[]) => {
-                return currentPosts.map(post => {
-                  if (updateEvent.type === 'IMAGE' && post.platform.toLowerCase() === PLATFORMS.INSTAGRAM) {
-                    return {
-                      ...post,
-                      imageUrl: updateEvent.data.url,
-                      isLoadingImage: false
-                    };
-                  }
-                  if (updateEvent.type === 'VIDEO' && post.platform.toLowerCase() === PLATFORMS.TIKTOK) {
-                    return {
-                      ...post,
-                      videoUrl: updateEvent.data.url,
-                      isLoadingVideo: false
-                    };
-                  }
-                  return post;
-                });
-              };
-            }),
-            // Scan to accumulate updates
-            scan((currentPosts: NetworkPost[], updateFn: (posts: NetworkPost[]) => NetworkPost[]) => updateFn(currentPosts), posts)
-          )
-        );
+        const updates = this.createMediaGenerationUpdates(instagramPost, tiktokPost);
+        return this.emitProgressiveUpdates(posts, updates);
       })
     );
+  }
+
+  // ==================== PRIVATE METHODS ====================
+
+  /**
+   * Polls video status until completion, failure, or timeout
+   */
+  private pollVideoStatus(operationId: string): Observable<string> {
+    const startTime = Date.now();
+    const TIMEOUT_MS = 2 * 60 * 1000; // 2 minutes
+    const POLL_INTERVAL_MS = 15000; // 15 seconds
+
+    return new Observable<string>(observer => {
+      const pollInterval = setInterval(() => {
+        if (this.isVideoGenerationTimedOut(startTime, TIMEOUT_MS)) {
+          clearInterval(pollInterval);
+          console.error('Video generation timeout after 2 minutes');
+          observer.error('Video generation timeout');
+          return;
+        }
+
+        this.checkVideoStatus(operationId).subscribe({
+          next: (statusResponse) => {
+            this.handleVideoStatusResponse(statusResponse, pollInterval, observer);
+          },
+          error: (err) => {
+            clearInterval(pollInterval);
+            console.error('Error checking video status:', err);
+            observer.error(err);
+          }
+        });
+      }, POLL_INTERVAL_MS);
+
+      return () => clearInterval(pollInterval);
+    });
+  }
+
+  /**
+   * Checks if video generation has exceeded the timeout
+   */
+  private isVideoGenerationTimedOut(startTime: number, timeoutMs: number): boolean {
+    return Date.now() - startTime > timeoutMs;
+  }
+
+  /**
+   * Handles the video status response and manages observer state
+   */
+  private handleVideoStatusResponse(
+    statusResponse: { status: string; url?: string },
+    pollInterval: number,
+    observer: any
+  ): void {
+    if (statusResponse.status === 'COMPLETED' && statusResponse.url) {
+      clearInterval(pollInterval);
+      observer.next(statusResponse.url);
+      observer.complete();
+    } else if (statusResponse.status === 'FAILED') {
+      clearInterval(pollInterval);
+      console.error('Video generation failed');
+      observer.error('Video generation failed');
+    }
+    // If RUNNING, continue polling (do nothing)
+  }
+
+  /**
+   * Sets loading states for Instagram and TikTok posts
+   */
+  private setLoadingStates(instagramPost?: NetworkPost, tiktokPost?: NetworkPost): void {
+    if (instagramPost?.suggested_image_prompt) {
+      instagramPost.isLoadingImage = true;
+    }
+    if (tiktokPost?.suggested_video_prompt) {
+      tiktokPost.isLoadingVideo = true;
+    }
+  }
+
+  /**
+   * Creates observables for media generation updates
+   */
+  private createMediaGenerationUpdates(instagramPost?: NetworkPost, tiktokPost?: NetworkPost): Observable<UpdateEvent>[] {
+    const updates: Observable<UpdateEvent>[] = [];
+
+    if (instagramPost?.suggested_image_prompt) {
+      updates.push(this.createImageGenerationUpdate(instagramPost.suggested_image_prompt));
+    }
+
+    if (tiktokPost?.suggested_video_prompt) {
+      updates.push(this.createVideoGenerationUpdate(tiktokPost.suggested_video_prompt));
+    }
+
+    return updates;
+  }
+
+  /**
+   * Creates an observable for image generation
+   */
+  private createImageGenerationUpdate(prompt: string): Observable<UpdateEvent> {
+    return this.generateImage(prompt, '', undefined).pipe(
+      map(imageResponse => ({
+        type: 'IMAGE' as const,
+        data: { url: imageResponse.url }
+      })),
+      catchError(error => {
+        console.error('❌ Error generating image:', error);
+        return of({
+          type: 'IMAGE' as const,
+          data: { error: true }
+        });
+      })
+    );
+  }
+
+  /**
+   * Creates an observable for video generation
+   */
+  private createVideoGenerationUpdate(prompt: string): Observable<UpdateEvent> {
+    return this.generateVideo(prompt, undefined).pipe(
+      map(videoUrl => ({
+        type: 'VIDEO' as const,
+        data: { url: videoUrl }
+      })),
+      catchError(error => {
+        console.error('❌ Error generating video:', error);
+        return of({
+          type: 'VIDEO' as const,
+          data: { error: true }
+        });
+      })
+    );
+  }
+
+  /**
+   * Emits initial posts and then progressive updates as media generation completes
+   */
+  private emitProgressiveUpdates(posts: NetworkPost[], updates: Observable<UpdateEvent>[]): Observable<NetworkPost[]> {
+    return concat(
+      of(posts),
+      merge(...updates).pipe(
+        map((updateEvent): ((currentPosts: NetworkPost[]) => NetworkPost[]) => {
+          return (currentPosts: NetworkPost[]) => this.applyUpdateToPost(currentPosts, updateEvent);
+        }),
+        scan((currentPosts: NetworkPost[], updateFn: (posts: NetworkPost[]) => NetworkPost[]) => updateFn(currentPosts), posts)
+      )
+    );
+  }
+
+  /**
+   * Applies an update event to the corresponding post
+   */
+  private applyUpdateToPost(posts: NetworkPost[], updateEvent: UpdateEvent): NetworkPost[] {
+    return posts.map(post => {
+      if (updateEvent.type === 'IMAGE' && post.platform.toLowerCase() === PLATFORMS.INSTAGRAM) {
+        return {
+          ...post,
+          imageUrl: updateEvent.data.url,
+          isLoadingImage: false
+        };
+      }
+      if (updateEvent.type === 'VIDEO' && post.platform.toLowerCase() === PLATFORMS.TIKTOK) {
+        return {
+          ...post,
+          videoUrl: updateEvent.data.url,
+          isLoadingVideo: false
+        };
+      }
+      return post;
+    });
   }
 }
